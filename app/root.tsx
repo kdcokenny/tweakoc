@@ -8,6 +8,8 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
+import "@fontsource/geist-sans";
+import "@fontsource/geist-mono";
 import "./app.css";
 
 export function Layout({ children }: { children: React.ReactNode }) {
