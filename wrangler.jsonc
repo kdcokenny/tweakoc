@@ -1,0 +1,8 @@
+{
+	"name": "tweakoc",
+	"compatibility_date": "2025-01-01",
+	"main": "./build/server/index.js",
+	"assets": {
+		"directory": "./build/client"
+	}
+}
