@@ -7,7 +7,7 @@ interface WizardHeaderProps {
 
 export function WizardHeader({ currentStep, totalSteps }: WizardHeaderProps) {
 	return (
-		<header className="flex h-14 items-center justify-between border-b px-4 md:px-6">
+		<header className="flex h-14 shrink-0 items-center justify-between border-b px-4 md:px-6">
 			{/* Logo + wordmark */}
 			<Link to="/" className="flex items-center gap-2">
 				<img src="/brand/logo.svg" alt="Tweak logo" className="h-6 w-6" />

@@ -26,7 +26,7 @@ export function WizardFrame({
 	direction,
 }: WizardFrameProps) {
 	return (
-		<div className="flex min-h-screen flex-col bg-background">
+		<div className="flex h-dvh flex-col bg-background">
 			<WizardHeader currentStep={currentStep} totalSteps={totalSteps} />
 
 			<WizardContent direction={direction}>{children}</WizardContent>

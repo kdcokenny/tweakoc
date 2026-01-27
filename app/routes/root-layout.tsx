@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { WizardFrame } from "~/components/wizard/wizard-frame";
-import { STEP_ROUTES } from "~/lib/routes";
+import {
+	selectHarnessId,
+	selectReturnToStep,
+	useWizardStore,
+} from "~/lib/store/wizard-store";
 import {
 	getActiveSteps,
 	getMaxSteps,
 	getNextLabel,
-	getNextStep,
-	getPrevStep,
+	getNextStepPath,
+	getPrevStepPath,
 	getStepIndex,
-	type HarnessId,
 	PATH_TO_STEP,
 	STEP_ORDER,
 	type StepId,
@@ -20,22 +23,15 @@ export default function RootLayout() {
 	const navigate = useNavigate();
 	const prevOrderRef = useRef<number | null>(null);
 
+	// Get harness from store
+	const harnessId = useWizardStore(selectHarnessId);
+	const returnToStep = useWizardStore(selectReturnToStep);
+	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
+
 	// Derive step from path (deterministic map lookup)
 	const currentStepId = (PATH_TO_STEP[location.pathname] ??
 		"harness") as StepId;
 	const currentOrder = STEP_ORDER[currentStepId] ?? 0;
-
-	// TODO: Get from Zustand store (Phase 1 placeholder)
-	const harnessId: HarnessId | undefined = undefined;
-
-	// Guard: redirect to / if in /flow/* without harness
-	const isFlowRoute = location.pathname.startsWith("/flow");
-	// biome-ignore lint/correctness/useExhaustiveDependencies: harnessId is intentionally included
-	useEffect(() => {
-		if (isFlowRoute && !harnessId) {
-			navigate("/", { replace: true });
-		}
-	}, [isFlowRoute, harnessId, navigate]);
 
 	// Direction tracking (stable order, not active steps)
 	const direction = useMemo(() => {
@@ -56,19 +52,24 @@ export default function RootLayout() {
 
 	// Navigation handlers
 	const handleNext = () => {
-		const nextStep = getNextStep(currentStepId, harnessId);
-		if (nextStep) {
-			const route = STEP_ROUTES[nextStep.id];
-			if (route) navigate(route);
+		// If returnToStep is set, go there instead of natural next
+		if (returnToStep) {
+			const returnPath =
+				returnToStep === "primary"
+					? "/flow/models/primary"
+					: "/flow/models/secondary";
+			setReturnToStep(undefined);
+			navigate(returnPath);
+			return;
 		}
+
+		const nextPath = getNextStepPath(currentStepId, harnessId);
+		if (nextPath) navigate(nextPath);
 	};
 
 	const handleBack = () => {
-		const prevStep = getPrevStep(currentStepId, harnessId);
-		if (prevStep) {
-			const route = STEP_ROUTES[prevStep.id];
-			if (route) navigate(route);
-		}
+		const prevPath = getPrevStepPath(currentStepId, harnessId);
+		if (prevPath) navigate(prevPath);
 	};
 
 	// Next button label

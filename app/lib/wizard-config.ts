@@ -100,3 +100,23 @@ export function getNextLabel(
 
 	return "Next";
 }
+
+import { STEP_ROUTES } from "./routes";
+
+// Get next step path (type-safe, uses active steps)
+export function getNextStepPath(
+	currentStepId: StepId,
+	harnessId?: HarnessId,
+): string | null {
+	const nextStep = getNextStep(currentStepId, harnessId);
+	return nextStep ? (STEP_ROUTES[nextStep.id] ?? null) : null;
+}
+
+// Get previous step path (type-safe, uses active steps)
+export function getPrevStepPath(
+	currentStepId: StepId,
+	harnessId?: HarnessId,
+): string | null {
+	const prevStep = getPrevStep(currentStepId, harnessId);
+	return prevStep ? (STEP_ROUTES[prevStep.id] ?? null) : null;
+}

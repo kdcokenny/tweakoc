@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router";
 import { Card } from "~/components/ui/card";
+import { ROUTES } from "~/lib/routes";
+import { useWizardStore } from "~/lib/store/wizard-store";
 import { HARNESSES, type HarnessId } from "~/lib/wizard-config";
 
 export function meta() {
@@ -9,10 +12,13 @@ export function meta() {
 }
 
 export default function HarnessSelection() {
-	// TODO: Wire to Zustand store (Task 6)
+	const navigate = useNavigate();
+	const setHarness = useWizardStore((s) => s.setHarness);
+	const currentHarnessId = useWizardStore((s) => s.harnessId);
+
 	const handleSelectHarness = (harnessId: HarnessId) => {
-		console.log("Selected harness:", harnessId);
-		// Will be: store.setHarness(harnessId) + navigate to providers
+		setHarness(harnessId);
+		navigate(ROUTES.flow.providers);
 	};
 
 	return (
@@ -34,7 +40,13 @@ export default function HarnessSelection() {
 						onClick={() => handleSelectHarness(harness.id as HarnessId)}
 						className="text-left"
 					>
-						<Card className="p-4 hover:border-primary transition-colors cursor-pointer">
+						<Card
+							className={`p-4 transition-colors cursor-pointer ${
+								currentHarnessId === harness.id
+									? "border-primary bg-primary/5"
+									: "hover:border-primary"
+							}`}
+						>
 							<h2 className="font-semibold">{harness.name}</h2>
 							<p className="text-sm text-muted-foreground mt-1">
 								{harness.description}

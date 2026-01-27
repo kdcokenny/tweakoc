@@ -1,25 +1,32 @@
-import { redirect } from "react-router";
+import { useEffect } from "react";
+import { useNavigate, useParams } from "react-router";
 import { ROUTES } from "~/lib/routes";
-import { HARNESSES } from "~/lib/wizard-config";
-
-interface LoaderArgs {
-	params: { harnessId: string };
-}
-
-export function loader({ params }: LoaderArgs) {
-	const { harnessId } = params;
-
-	// Validate harness exists
-	if (!harnessId || !(harnessId in HARNESSES)) {
-		return redirect(ROUTES.home);
-	}
-
-	// TODO: Set harness in store (Task 6 - Zustand)
-	// For now, just redirect to providers
-	return redirect(ROUTES.flow.providers);
-}
+import { useWizardStore } from "~/lib/store/wizard-store";
+import { HARNESSES, type HarnessId } from "~/lib/wizard-config";
 
 export default function HarnessRedirect() {
-	// This shouldn't render (loader redirects)
-	return null;
+	const params = useParams<{ harnessId: string }>();
+	const navigate = useNavigate();
+	const setHarness = useWizardStore((s) => s.setHarness);
+
+	useEffect(() => {
+		const { harnessId } = params;
+
+		// Validate harness exists
+		if (!harnessId || !(harnessId in HARNESSES)) {
+			navigate(ROUTES.home, { replace: true });
+			return;
+		}
+
+		// Set harness in store and redirect to providers
+		setHarness(harnessId as HarnessId);
+		navigate(ROUTES.flow.providers, { replace: true });
+	}, [params, navigate, setHarness]);
+
+	// Show nothing while redirecting
+	return (
+		<div className="flex items-center justify-center p-6">
+			<p className="text-muted-foreground">Redirecting...</p>
+		</div>
+	);
 }
