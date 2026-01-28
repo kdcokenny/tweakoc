@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router";
 import { Card } from "~/components/ui/card";
+import { getAllHarnesses } from "~/lib/harness-registry";
 import { ROUTES } from "~/lib/routes";
 import { useWizardStore } from "~/lib/store/wizard-store";
-import { HARNESSES, type HarnessId } from "~/lib/wizard-config";
 
 export function meta() {
 	return [
@@ -16,7 +16,10 @@ export default function HarnessSelection() {
 	const setHarness = useWizardStore((s) => s.setHarness);
 	const currentHarnessId = useWizardStore((s) => s.harnessId);
 
-	const handleSelectHarness = (harnessId: HarnessId) => {
+	// Get all harnesses from registry
+	const harnesses = getAllHarnesses();
+
+	const handleSelectHarness = (harnessId: string) => {
 		setHarness(harnessId);
 		navigate(ROUTES.flow.providers);
 	};
@@ -33,11 +36,11 @@ export default function HarnessSelection() {
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-2">
-				{Object.values(HARNESSES).map((harness) => (
+				{harnesses.map((harness) => (
 					<button
 						key={harness.id}
 						type="button"
-						onClick={() => handleSelectHarness(harness.id as HarnessId)}
+						onClick={() => handleSelectHarness(harness.id)}
 						className="text-left"
 					>
 						<Card

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getHarness } from "~/lib/harness-registry";
 
 // Credential pattern blocklist (defense-in-depth)
 const CREDENTIAL_PATTERNS = [
@@ -24,6 +25,7 @@ const safeString = (maxLength: number) =>
 			message: "Value appears to contain a credential pattern",
 		});
 
+// Model slot schema
 const modelSlotSchema = z
 	.object({
 		providerId: safeString(64),
@@ -31,28 +33,72 @@ const modelSlotSchema = z
 	})
 	.strict();
 
-export const createProfileSchema = z
+// Base profile request schema (without harness-specific validation)
+export const createProfileRequestSchema = z
 	.object({
-		harnessId: z.enum(["kdco-workspace", "omo"]),
+		harnessId: z.string().min(1),
 		providers: z.array(safeString(64)).min(1).max(20),
-		primary: modelSlotSchema,
-		secondary: modelSlotSchema,
-		options: z
-			.object({
-				context7: z.boolean().optional(),
-				renameWindow: z.boolean().optional(),
-			})
-			.strict()
-			.optional(),
+		slots: z.record(z.string(), modelSlotSchema),
+		options: z.record(z.string(), z.unknown()).optional(),
 	})
 	.strict();
 
-export type ValidatedCreateProfileRequest = z.infer<typeof createProfileSchema>;
+export type ValidatedCreateProfileRequest = z.infer<
+	typeof createProfileRequestSchema
+>;
 
+/**
+ * Validate a profile request against its harness configuration.
+ * Ensures all required slots are present and valid.
+ */
+export function validateProfileRequest(
+	request: ValidatedCreateProfileRequest,
+): { valid: true } | { valid: false; error: string } {
+	const harness = getHarness(request.harnessId);
+
+	if (!harness) {
+		return { valid: false, error: `Unknown harness: "${request.harnessId}"` };
+	}
+
+	// Validate all required slots are present
+	for (const slotConfig of harness.slots) {
+		const slot = request.slots[slotConfig.id];
+		if (!slot) {
+			return {
+				valid: false,
+				error: `Missing required slot: "${slotConfig.id}"`,
+			};
+		}
+	}
+
+	// Validate no extra slots
+	const validSlotIds = new Set(harness.slots.map((s) => s.id));
+	for (const slotId of Object.keys(request.slots)) {
+		if (!validSlotIds.has(slotId)) {
+			return { valid: false, error: `Unknown slot: "${slotId}"` };
+		}
+	}
+
+	return { valid: true };
+}
+
+/**
+ * Parse and validate a create profile request.
+ * Validates both schema and harness configuration.
+ */
 export function parseCreateProfileRequest(
 	data: unknown,
 ): ValidatedCreateProfileRequest {
-	return createProfileSchema.parse(data);
+	// First, parse with Zod
+	const parsed = createProfileRequestSchema.parse(data);
+
+	// Then validate against harness config
+	const validation = validateProfileRequest(parsed);
+	if (!validation.valid) {
+		throw new Error(validation.error);
+	}
+
+	return parsed;
 }
 
 // Cursor schema for pagination

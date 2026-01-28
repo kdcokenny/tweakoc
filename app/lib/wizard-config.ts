@@ -1,122 +1,124 @@
-// Wizard step definitions
-export const WIZARD_STEPS = [
+import { getHarness } from "./harness-registry";
+
+// Base steps that are always present
+const BASE_STEPS_START = [
 	{ id: "harness", path: "/", label: "Harness" },
 	{ id: "providers", path: "/flow/providers", label: "Providers" },
-	{ id: "primary", path: "/flow/models/primary", label: "Primary Model" },
-	{ id: "secondary", path: "/flow/models/secondary", label: "Secondary Model" },
-	{ id: "options", path: "/flow/options", label: "Options", conditional: true },
+];
+
+const BASE_STEPS_END = [
 	{ id: "review", path: "/flow/review", label: "Review" },
-] as const;
+];
 
-export type StepId = (typeof WIZARD_STEPS)[number]["id"];
-
-// Stable step order for direction tracking (never changes even when steps are skipped)
-export const STEP_ORDER: Record<string, number> = {
-	harness: 0,
-	providers: 1,
-	primary: 2,
-	secondary: 3,
-	options: 4,
-	review: 5,
-};
-
-// Path to stepId map (deterministic, no pathname parsing)
-export const PATH_TO_STEP: Record<string, StepId> = {
-	"/": "harness",
-	"/flow/providers": "providers",
-	"/flow/models/primary": "primary",
-	"/flow/models/secondary": "secondary",
-	"/flow/options": "options",
-	"/flow/review": "review",
-};
-
-// Mock harness definitions (Phase 1)
-export const HARNESSES = {
-	"kdco-workspace": {
-		id: "kdco-workspace",
-		name: "KDCO Workspace",
-		description: "Full-featured development environment",
-		hasOptions: true,
-		defaultProfileName: "kdco-workspace",
-	},
-	omo: {
-		id: "omo",
-		name: "Oh-My-OpenCode",
-		description: "Lightweight orchestrator setup",
-		hasOptions: false,
-		defaultProfileName: "omo",
-	},
-} as const;
-
-export type HarnessId = keyof typeof HARNESSES;
-
-// Compute active steps based on harness (excludes conditional steps if harness doesn't support them)
-export function getActiveSteps(harnessId?: HarnessId) {
-	const harness = harnessId ? HARNESSES[harnessId] : null;
-	return WIZARD_STEPS.filter(
-		(step) => !("conditional" in step) || harness?.hasOptions,
-	);
+export interface WizardStep {
+	id: string;
+	path: string;
+	label: string;
+	slotId?: string; // For slot steps
 }
 
-// Get max possible steps (for pre-harness display)
-export function getMaxSteps() {
-	return WIZARD_STEPS.length;
+/**
+ * Generate wizard steps based on harness configuration.
+ * Steps are: harness → providers → [slot steps] → [options if any] → review
+ */
+export function getWizardSteps(harnessId: string | undefined): WizardStep[] {
+	if (!harnessId) {
+		return [...BASE_STEPS_START, ...BASE_STEPS_END];
+	}
+
+	const harness = getHarness(harnessId);
+	if (!harness) {
+		return [...BASE_STEPS_START, ...BASE_STEPS_END];
+	}
+
+	const steps: WizardStep[] = [...BASE_STEPS_START];
+
+	// Add slot steps
+	for (const slot of harness.slots) {
+		steps.push({
+			id: `slot-${slot.id}`,
+			path: `/flow/slot/${slot.id}`,
+			label: slot.label,
+			slotId: slot.id,
+		});
+	}
+
+	// Add options step if harness has options
+	if (harness.options && harness.options.length > 0) {
+		steps.push({
+			id: "options",
+			path: "/flow/options",
+			label: "Options",
+		});
+	}
+
+	// Add review step
+	steps.push(...BASE_STEPS_END);
+
+	return steps;
 }
 
-// Get step by ID
-export function getStepById(stepId: StepId) {
-	return WIZARD_STEPS.find((s) => s.id === stepId);
+/**
+ * Get active steps (for backward compatibility during transition).
+ * Now just calls getWizardSteps.
+ */
+export function getActiveSteps(harnessId: string | undefined): WizardStep[] {
+	return getWizardSteps(harnessId);
 }
 
-// Get next step in the active flow
-export function getNextStep(currentStepId: StepId, harnessId?: HarnessId) {
-	const steps = getActiveSteps(harnessId);
-	const currentIndex = steps.findIndex((s) => s.id === currentStepId);
-	return steps[currentIndex + 1] ?? null;
-}
+// Keep HARNESSES export for backward compatibility, but update to use new registry
+export { getAllHarnesses, getHarness, HARNESSES } from "./harness-registry";
 
-// Get previous step in the active flow
-export function getPrevStep(currentStepId: StepId, harnessId?: HarnessId) {
-	const steps = getActiveSteps(harnessId);
-	const currentIndex = steps.findIndex((s) => s.id === currentStepId);
-	return steps[currentIndex - 1] ?? null;
-}
-
-// Get current step index (1-based for display)
-export function getStepIndex(stepId: StepId, harnessId?: HarnessId) {
-	const steps = getActiveSteps(harnessId);
+// Step navigation helpers
+export function getStepIndex(steps: WizardStep[], stepId: string): number {
 	return steps.findIndex((s) => s.id === stepId);
+}
+
+export function getNextStep(
+	steps: WizardStep[],
+	currentStepId: string,
+): WizardStep | undefined {
+	const index = getStepIndex(steps, currentStepId);
+	return index >= 0 && index < steps.length - 1 ? steps[index + 1] : undefined;
+}
+
+export function getPrevStep(
+	steps: WizardStep[],
+	currentStepId: string,
+): WizardStep | undefined {
+	const index = getStepIndex(steps, currentStepId);
+	return index > 0 ? steps[index - 1] : undefined;
+}
+
+// Helper to identify current step from path
+export function getStepFromPath(
+	steps: WizardStep[],
+	path: string,
+): WizardStep | undefined {
+	// Handle slot paths: /flow/slot/visual-engineering → slot-visual-engineering
+	if (path.startsWith("/flow/slot/")) {
+		const slotId = path.replace("/flow/slot/", "");
+		return steps.find((s) => s.slotId === slotId);
+	}
+	return steps.find((s) => s.path === path);
 }
 
 // Get next button label based on current step
 export function getNextLabel(
-	currentStepId: StepId,
-	harnessId?: HarnessId,
+	currentStepId: string,
+	harnessId: string | undefined,
 ): "Next" | "Review" | "Create Profile" {
 	if (currentStepId === "review") return "Create Profile";
 
-	const nextStep = getNextStep(currentStepId, harnessId);
+	const steps = getWizardSteps(harnessId);
+	const nextStep = getNextStep(steps, currentStepId);
 	if (nextStep?.id === "review") return "Review";
 
 	return "Next";
 }
 
-import { STEP_ROUTES } from "./routes";
-
-// Get next step path (type-safe, uses active steps)
-export function getNextStepPath(
-	currentStepId: StepId,
-	harnessId?: HarnessId,
-): string | null {
-	const nextStep = getNextStep(currentStepId, harnessId);
-	return nextStep ? (STEP_ROUTES[nextStep.id] ?? null) : null;
-}
-
-// Get previous step path (type-safe, uses active steps)
-export function getPrevStepPath(
-	currentStepId: StepId,
-	harnessId?: HarnessId,
-): string | null {
-	const prevStep = getPrevStep(currentStepId, harnessId);
-	return prevStep ? (STEP_ROUTES[prevStep.id] ?? null) : null;
+// Get max possible steps (for pre-harness display)
+export function getMaxSteps(): number {
+	// Max possible: harness, providers, 2 slots (typical), options, review
+	return 6;
 }

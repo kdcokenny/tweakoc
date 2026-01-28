@@ -21,15 +21,13 @@ import {
 import { ModelPicker } from "./model-picker";
 
 interface ModelSlotProps {
-	slot: "primary" | "secondary";
-	title: string;
-	description: string;
+	slotId: string;
 }
 
-export function ModelSlot({ slot }: ModelSlotProps) {
+export function ModelSlot({ slotId }: ModelSlotProps) {
 	const providers = useWizardStore(selectProviders);
 	const defaultProvider = useWizardStore(selectDefaultProvider);
-	const slotData = useWizardStore((s) => s[slot]);
+	const slotData = useWizardStore((s) => s.slots[slotId]);
 	const setSlotProvider = useWizardStore((s) => s.setSlotProvider);
 	const setSlotModel = useWizardStore((s) => s.setSlotModel);
 	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
@@ -73,20 +71,20 @@ export function ModelSlot({ slot }: ModelSlotProps) {
 
 	const handleProviderChange = (providerId: string | null) => {
 		if (providerId) {
-			setSlotProvider(slot, providerId);
+			setSlotProvider(slotId, providerId);
 		}
 	};
 
 	const handleModelChange = (modelId: string) => {
 		// Ensure provider is set before model
 		if (!slotData.providerId && currentProviderId) {
-			setSlotProvider(slot, currentProviderId);
+			setSlotProvider(slotId, currentProviderId);
 		}
-		setSlotModel(slot, modelId);
+		setSlotModel(slotId, modelId);
 	};
 
 	const handleEditProviders = () => {
-		setReturnToStep(slot);
+		setReturnToStep(slotId);
 	};
 
 	const showProviderDropdown = providers.length > 1;
@@ -171,7 +169,7 @@ export function ModelSlot({ slot }: ModelSlotProps) {
 						providerId={currentProviderId}
 						value={slotData.modelId}
 						onChange={handleModelChange}
-						onClear={() => setSlotModel(slot, undefined)}
+						onClear={() => setSlotModel(slotId, undefined)}
 						loader={modelLoader}
 					/>
 				) : (

@@ -1,5 +1,3 @@
-"use client";
-
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { CodeBlockCommand } from "~/components/code-block-command";
@@ -21,8 +19,8 @@ import {
 import { Input } from "~/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import type { GeneratedFile } from "~/lib/api/types";
+import { getHarness } from "~/lib/harness-registry";
 import { selectHarnessId, useWizardStore } from "~/lib/store/wizard-store";
-import { HARNESSES } from "~/lib/wizard-config";
 
 interface CreateProfileModalProps {
 	open: boolean;
@@ -54,9 +52,12 @@ export function CreateProfileModal({
 	const harnessId = useWizardStore(selectHarnessId);
 
 	// Default profile name from harness
-	const defaultName = harnessId
-		? (HARNESSES[harnessId]?.defaultProfileName ?? "my-profile")
-		: "my-profile";
+	const defaultName = useMemo(() => {
+		if (!harnessId) return "my-profile";
+		const harness = getHarness(harnessId);
+		// Fallback to harness ID if no defaultProfileName is defined
+		return harness?.id ?? "my-profile";
+	}, [harnessId]);
 	const [profileName, setProfileName] = useState(defaultName);
 
 	// Reset tab to "install" when modal closes
@@ -82,7 +83,7 @@ export function CreateProfileModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+			<DialogContent className="max-w-2xl max-h-[80vh] min-h-0 flex flex-col">
 				<DialogHeader>
 					<DialogTitle>Create Profile</DialogTitle>
 					<DialogDescription>
@@ -93,14 +94,14 @@ export function CreateProfileModal({
 				<Tabs
 					value={activeTab}
 					onValueChange={setActiveTab}
-					className="flex flex-col flex-1"
+					className="flex flex-col flex-1 min-h-0"
 				>
 					<TabsList>
 						<TabsTrigger value="install">Install</TabsTrigger>
 						<TabsTrigger value="files">Files</TabsTrigger>
 					</TabsList>
 
-					<TabsContent value="install" className="flex-1 overflow-auto">
+					<TabsContent value="install" className="flex-1 min-h-0 overflow-auto">
 						<div className="flex flex-col gap-6 mt-4 min-w-0">
 							{/* Profile name input */}
 							<div className="flex flex-col gap-2">
@@ -174,7 +175,10 @@ export function CreateProfileModal({
 						</div>
 					</TabsContent>
 
-					<TabsContent value="files" className="flex-1 overflow-auto">
+					<TabsContent
+						value="files"
+						className="flex-1 min-h-0 overflow-hidden flex flex-col"
+					>
 						<FilesViewer files={files ?? []} />
 					</TabsContent>
 				</Tabs>

@@ -16,8 +16,7 @@ export default [
 
 		// Flow steps
 		route("flow/providers", "routes/flow/providers.tsx"),
-		route("flow/models/primary", "routes/flow/models-primary.tsx"),
-		route("flow/models/secondary", "routes/flow/models-secondary.tsx"),
+		route("flow/slot/:slotId", "routes/flow/slot.$slotId.tsx"),
 		route("flow/options", "routes/flow/options.tsx"),
 		route("flow/review", "routes/flow/review.tsx"),
 	]),

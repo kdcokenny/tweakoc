@@ -7,21 +7,17 @@ import {
 	useWizardStore,
 } from "~/lib/store/wizard-store";
 import {
-	getActiveSteps,
 	getMaxSteps,
 	getNextLabel,
-	getNextStepPath,
-	getPrevStepPath,
-	getStepIndex,
-	PATH_TO_STEP,
-	STEP_ORDER,
-	type StepId,
+	getNextStep,
+	getPrevStep,
+	getStepFromPath,
+	getWizardSteps,
 } from "~/lib/wizard-config";
 
 export default function RootLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const prevOrderRef = useRef<number | null>(null);
 
 	// Get harness from store
 	const harnessId = useWizardStore(selectHarnessId);
@@ -36,32 +32,31 @@ export default function RootLayout() {
 		void ensureProvidersLoaded();
 	}, [ensureProvidersLoaded]);
 
-	// Derive step from path (deterministic map lookup)
-	const currentStepId = (PATH_TO_STEP[location.pathname] ??
-		"harness") as StepId;
-	const currentOrder = STEP_ORDER[currentStepId] ?? 0;
+	// Compute steps based on harness
+	const steps = getWizardSteps(harnessId);
+	const currentStep = getStepFromPath(steps, location.pathname);
+	const currentStepIndex = currentStep ? steps.indexOf(currentStep) : -1;
 
-	// Direction tracking (stable order, not active steps)
+	// Direction tracking (for animations - based on step index)
+	const prevIndexRef = useRef<number | null>(null);
 	const direction = useMemo(() => {
-		if (prevOrderRef.current === null) return "forward" as const;
-		return currentOrder < prevOrderRef.current
+		if (prevIndexRef.current === null) return "forward" as const;
+		return currentStepIndex < prevIndexRef.current
 			? ("back" as const)
 			: ("forward" as const);
-	}, [currentOrder]);
+	}, [currentStepIndex]);
 
 	useEffect(() => {
-		prevOrderRef.current = currentOrder;
-	}, [currentOrder]);
+		prevIndexRef.current = currentStepIndex;
+	}, [currentStepIndex]);
 
 	// Compute steps
-	const activeSteps = harnessId ? getActiveSteps(harnessId) : null;
-	const totalSteps = activeSteps?.length ?? getMaxSteps();
-	const currentIndex = getStepIndex(currentStepId, harnessId);
+	const totalSteps = steps.length || getMaxSteps();
 
 	// Navigation handlers
 	const handleNext = () => {
 		// Special case: review step - call the registered handler
-		if (currentStepId === "review") {
+		if (currentStep?.id === "review") {
 			const handler = useWizardStore.getState().reviewStepHandler;
 			if (handler) {
 				void handler();
@@ -71,41 +66,42 @@ export default function RootLayout() {
 
 		// If returnToStep is set, go there instead of natural next
 		if (returnToStep) {
-			const returnPath =
-				returnToStep === "primary"
-					? "/flow/models/primary"
-					: "/flow/models/secondary";
+			const returnPath = `/flow/slot/${returnToStep}`;
 			setReturnToStep(undefined);
 			navigate(returnPath);
 			return;
 		}
 
-		const nextPath = getNextStepPath(currentStepId, harnessId);
-		if (nextPath) navigate(nextPath);
+		const nextStep = currentStep
+			? getNextStep(steps, currentStep.id)
+			: undefined;
+		if (nextStep) navigate(nextStep.path);
 	};
 
 	const handleBack = () => {
-		const prevPath = getPrevStepPath(currentStepId, harnessId);
-		if (prevPath) navigate(prevPath);
+		const prevStep = currentStep
+			? getPrevStep(steps, currentStep.id)
+			: undefined;
+		if (prevStep) navigate(prevStep.path);
 	};
 
 	// Next button label
-	const nextLabel = getNextLabel(currentStepId, harnessId);
+	const nextLabel = getNextLabel(currentStep?.id ?? "harness", harnessId);
 
 	// Can go back? (not on step 1, and not while creating)
-	const canGoBack = currentIndex > 0 && !reviewStepCreating;
+	const canGoBack = currentStepIndex > 0 && !reviewStepCreating;
 
 	// Can go next? (harness step: only if harness selected; review step: not while creating)
 	const canGoNext =
-		currentStepId === "harness"
+		currentStep?.id === "harness"
 			? !!harnessId
-			: currentStepId === "review"
+			: currentStep?.id === "review"
 				? !reviewStepCreating
 				: true;
 
 	return (
 		<WizardFrame
-			currentStep={currentIndex + 1}
+			currentStep={currentStepIndex + 1}
 			totalSteps={totalSteps}
 			nextLabel={nextLabel}
 			onNext={handleNext}

@@ -1,0 +1,66 @@
+{
+	"schemaVersion": 1,
+	"id": "kdco-workspace",
+	"name": "KDCO Workspace",
+	"description": "Full-featured development environment with specialized agents",
+
+	"slots": [
+		{
+			"id": "orchestrator",
+			"label": "Orchestrator",
+			"description": "Main planning and task delegation"
+		},
+		{
+			"id": "coder",
+			"label": "Coder",
+			"description": "Code generation and modification"
+		},
+		{
+			"id": "researcher",
+			"label": "Researcher",
+			"description": "Research, analysis, and documentation lookup"
+		}
+	],
+
+	"options": [
+		{
+			"id": "context7",
+			"type": "boolean",
+			"label": "Context7 MCP",
+			"description": "Enable Context7 documentation lookup",
+			"default": false
+		},
+		{
+			"id": "renameWindow",
+			"type": "boolean",
+			"label": "Rename Terminal Window",
+			"description": "Automatically rename terminal window to project name",
+			"default": true
+		}
+	],
+
+	"outputs": [
+		{ "path": "opencode.jsonc", "label": "OpenCode Config" },
+		{ "path": "ocx.jsonc", "label": "OCX Profile Config" }
+	],
+
+	"templates": [
+		{
+			"output": "opencode.jsonc",
+			"template": {
+				"$schema": "https://opencode.ai/config.json",
+				"model": { "$ref": "#/slots/orchestrator/model" },
+				"small_model": { "$ref": "#/slots/coder/model" }
+			}
+		},
+		{
+			"output": "ocx.jsonc",
+			"template": {
+				"$schema": "https://ocx.kdco.dev/schemas/profile.json",
+				"registries": {},
+				"renameWindow": { "$ref": "#/options/renameWindow" },
+				"exclude": ["**/CLAUDE.md", "**/CONTEXT.md", "**/.opencode/**"]
+			}
+		}
+	]
+}

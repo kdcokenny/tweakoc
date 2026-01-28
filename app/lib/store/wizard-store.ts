@@ -1,12 +1,7 @@
 import { create } from "zustand";
 import { fetchProviders } from "~/lib/api/client";
 import type { ProviderSummary } from "~/lib/api/types";
-import type { HarnessId } from "~/lib/wizard-config";
-
-interface ModelSlot {
-	providerId?: string;
-	modelId?: string;
-}
+import { getHarness } from "~/lib/harness-registry";
 
 interface CatalogState {
 	providersById: Record<string, ProviderSummary>;
@@ -17,14 +12,13 @@ interface CatalogState {
 
 interface WizardState {
 	// Selections
-	harnessId?: HarnessId;
+	harnessId?: string;
 	providers: string[]; // insertion order maintained
-	primary: ModelSlot;
-	secondary: ModelSlot;
-	options: Record<string, boolean>;
+	slots: Record<string, { providerId?: string; modelId?: string }>;
+	options: Record<string, unknown>;
 
 	// Backtracking
-	returnToStep?: "primary" | "secondary";
+	returnToStep?: string;
 
 	// Calm banner (for provider removal effects)
 	banner?: { message: string; dismissKey: string };
@@ -39,17 +33,25 @@ interface WizardState {
 
 interface WizardActions {
 	// Core actions
-	setHarness: (id: HarnessId) => void;
+	setHarness: (id: string) => void;
 	toggleProvider: (id: string) => void;
-	setSlotProvider: (slot: "primary" | "secondary", providerId: string) => void;
-	setSlotModel: (
-		slot: "primary" | "secondary",
-		modelId: string | undefined,
-	) => void;
-	setOption: (key: string, value: boolean) => void;
+
+	// Initialize slots from harness config
+	initializeSlotsFromHarness: () => void;
+
+	// Set slot provider (dynamic slot ID)
+	setSlotProvider: (slotId: string, providerId: string) => void;
+
+	// Set slot model (dynamic slot ID)
+	setSlotModel: (slotId: string, modelId: string | undefined) => void;
+
+	// Clear a specific slot
+	clearSlot: (slotId: string) => void;
+
+	setOption: (key: string, value: unknown) => void;
 
 	// Backtracking
-	setReturnToStep: (step?: "primary" | "secondary") => void;
+	setReturnToStep: (step?: string) => void;
 
 	// Review step handler
 	setReviewStepHandler: (handler?: () => void | Promise<void>) => void;
@@ -73,8 +75,7 @@ interface WizardActions {
 
 const initialState: WizardState = {
 	providers: [],
-	primary: {},
-	secondary: {},
+	slots: {},
 	options: {},
 	catalog: {
 		providersById: {},
@@ -95,12 +96,30 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			set({
 				harnessId: id,
 				providers: [],
-				primary: {},
-				secondary: {},
+				slots: {},
 				options: {},
 				returnToStep: undefined,
 				banner: undefined,
 			});
+			// Initialize slots from harness config
+			get().initializeSlotsFromHarness();
+		},
+
+		initializeSlotsFromHarness: () => {
+			const { harnessId } = get();
+			if (!harnessId) return;
+
+			const harness = getHarness(harnessId);
+			if (!harness) return;
+
+			// Create empty slot for each harness slot
+			const slots: Record<string, { providerId?: string; modelId?: string }> =
+				{};
+			for (const slot of harness.slots) {
+				slots[slot.id] = { providerId: undefined, modelId: undefined };
+			}
+
+			set({ slots });
 		},
 
 		toggleProvider: (id) => {
@@ -117,18 +136,38 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			}
 		},
 
-		setSlotProvider: (slot, providerId) => {
-			// Changing provider clears the model for that slot
-			set({
-				[slot]: { providerId, modelId: undefined },
-			});
+		setSlotProvider: (slotId, providerId) => {
+			set((state) => ({
+				slots: {
+					...state.slots,
+					[slotId]: {
+						...state.slots[slotId],
+						providerId,
+						modelId: undefined, // Clear model when provider changes
+					},
+				},
+			}));
 		},
 
-		setSlotModel: (slot, modelId) => {
-			const currentSlot = get()[slot];
-			set({
-				[slot]: { ...currentSlot, modelId },
-			});
+		setSlotModel: (slotId, modelId) => {
+			set((state) => ({
+				slots: {
+					...state.slots,
+					[slotId]: {
+						...state.slots[slotId],
+						modelId,
+					},
+				},
+			}));
+		},
+
+		clearSlot: (slotId) => {
+			set((state) => ({
+				slots: {
+					...state.slots,
+					[slotId]: { providerId: undefined, modelId: undefined },
+				},
+			}));
 		},
 
 		setOption: (key, value) => {
@@ -151,39 +190,19 @@ export const useWizardStore = create<WizardState & WizardActions>(
 
 		applyProviderChanges: (prevProviders, nextProviders) => {
 			const removed = prevProviders.filter((p) => !nextProviders.includes(p));
-			const { primary, secondary } = get();
+			const { slots } = get();
 
-			let newPrimary = primary;
-			let newSecondary = secondary;
-			let bannerMessage: string | undefined;
-
-			// Default provider = first in new selection (insertion order)
-			const defaultProvider = nextProviders[0];
-
-			// Check if primary slot used a removed provider
-			if (primary.providerId && removed.includes(primary.providerId)) {
-				newPrimary = { providerId: defaultProvider, modelId: undefined };
-				bannerMessage = `Primary model was reset because ${primary.providerId} was removed.`;
-			}
-
-			// Check if secondary slot used a removed provider
-			if (secondary.providerId && removed.includes(secondary.providerId)) {
-				newSecondary = { providerId: defaultProvider, modelId: undefined };
-				bannerMessage = bannerMessage
-					? "Model selections were reset because providers were removed."
-					: `Secondary model was reset because ${secondary.providerId} was removed.`;
+			// Clear slots that reference removed providers
+			const updatedSlots = { ...slots };
+			for (const [slotId, slot] of Object.entries(updatedSlots)) {
+				if (slot.providerId && removed.includes(slot.providerId)) {
+					updatedSlots[slotId] = { providerId: undefined, modelId: undefined };
+				}
 			}
 
 			set({
 				providers: nextProviders,
-				primary: newPrimary,
-				secondary: newSecondary,
-				banner: bannerMessage
-					? {
-							message: bannerMessage,
-							dismissKey: `provider-removed-${Date.now()}`,
-						}
-					: undefined,
+				slots: updatedSlots,
 			});
 		},
 
@@ -255,8 +274,7 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			set({
 				harnessId: undefined,
 				providers: [],
-				primary: {},
-				secondary: {},
+				slots: {},
 				options: {},
 				returnToStep: undefined,
 				banner: undefined,
@@ -269,20 +287,43 @@ export const useWizardStore = create<WizardState & WizardActions>(
 // Selectors for common access patterns
 export const selectHarnessId = (state: WizardState) => state.harnessId;
 export const selectProviders = (state: WizardState) => state.providers;
-export const selectPrimary = (state: WizardState) => state.primary;
-export const selectSecondary = (state: WizardState) => state.secondary;
 export const selectOptions = (state: WizardState) => state.options;
 export const selectReturnToStep = (state: WizardState) => state.returnToStep;
 export const selectBanner = (state: WizardState) => state.banner;
+
+// Slot selectors
+// Select a specific slot
+export const selectSlot = (slotId: string) => (state: WizardState) =>
+	state.slots[slotId];
+
+// Select all slots
+export const selectAllSlots = (state: WizardState) => state.slots;
+
+// Check if a slot is complete (has both provider and model)
+export const selectIsSlotComplete =
+	(slotId: string) => (state: WizardState) => {
+		const slot = state.slots[slotId];
+		return Boolean(slot?.providerId && slot?.modelId);
+	};
+
+// Check if all slots are complete
+export const selectAreAllSlotsComplete = (state: WizardState) => {
+	const harnessId = state.harnessId;
+	if (!harnessId) return false;
+
+	const harness = getHarness(harnessId);
+	if (!harness) return false;
+
+	return harness.slots.every((slot) => {
+		const slotData = state.slots[slot.id];
+		return slotData?.providerId && slotData?.modelId;
+	});
+};
 
 // Computed selectors
 export const selectDefaultProvider = (state: WizardState) => state.providers[0];
 export const selectHasProviders = (state: WizardState) =>
 	state.providers.length > 0;
-export const selectIsPrimaryComplete = (state: WizardState) =>
-	!!state.primary.providerId && !!state.primary.modelId;
-export const selectIsSecondaryComplete = (state: WizardState) =>
-	!!state.secondary.providerId && !!state.secondary.modelId;
 
 // Catalog selectors - MUST return stable references (no .map/.filter in selectors!)
 export const selectCatalogStatus = (state: WizardState & WizardActions) =>

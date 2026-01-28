@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { ROUTES } from "~/lib/routes";
 import { useWizardStore } from "~/lib/store/wizard-store";
-import { HARNESSES, type HarnessId } from "~/lib/wizard-config";
+import { HARNESSES } from "~/lib/wizard-config";
 
 export default function HarnessRedirect() {
 	const params = useParams<{ harnessId: string }>();
@@ -19,7 +19,7 @@ export default function HarnessRedirect() {
 		}
 
 		// Set harness in store and redirect to providers
-		setHarness(harnessId as HarnessId);
+		setHarness(harnessId);
 		navigate(ROUTES.flow.providers, { replace: true });
 	}, [params, navigate, setHarness]);
 

@@ -44,6 +44,7 @@ async function handlePackument(
 	const files = profile.files.map((f) => ({
 		path: f.path,
 		target: f.path, // Flat paths for profiles
+		content: f.content, // Include content for UI consumption
 	}));
 
 	const packument = {

@@ -21,7 +21,7 @@ export function FilesViewer({ files }: FilesViewerProps) {
 		<Tabs
 			key={files.map((f) => f.path).join(",")}
 			defaultValue={files[0]?.path}
-			className="flex-1 overflow-hidden flex flex-col"
+			className="flex-1 min-h-0 overflow-hidden flex flex-col"
 		>
 			<TabsList className="w-full justify-start">
 				{files.map((file) => (
@@ -35,14 +35,14 @@ export function FilesViewer({ files }: FilesViewerProps) {
 				<TabsContent
 					key={file.path}
 					value={file.path}
-					className="flex-1 overflow-hidden mt-4"
+					className="flex-1 min-h-0 overflow-hidden mt-4 flex flex-col"
 				>
-					<div className="relative h-full rounded-lg border bg-muted/50">
+					<div className="relative flex min-h-0 flex-1 flex-col rounded-lg border bg-muted/50">
 						<CopyButton
 							value={file.content}
 							className="absolute top-2 right-2 z-10"
 						/>
-						<pre className="h-full overflow-auto p-4 text-sm font-mono no-scrollbar">
+						<pre className="flex-1 min-h-0 overflow-auto p-4 text-sm font-mono no-scrollbar">
 							<code>{file.content}</code>
 						</pre>
 					</div>

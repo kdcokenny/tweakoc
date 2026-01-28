@@ -2,18 +2,16 @@ import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { ROUTES } from "~/lib/routes";
 import {
+	selectAreAllSlotsComplete,
 	selectHarnessId,
 	selectHasProviders,
-	selectIsPrimaryComplete,
-	selectIsSecondaryComplete,
 	useWizardStore,
 } from "~/lib/store/wizard-store";
 
 interface GuardRequirements {
 	harness?: boolean;
 	providers?: boolean;
-	primaryComplete?: boolean;
-	secondaryComplete?: boolean;
+	allSlotsComplete?: boolean;
 }
 
 interface GuardResult {
@@ -37,8 +35,7 @@ export function useWizardGuard(requirements: GuardRequirements): GuardResult {
 	// Select only what we need to minimize re-renders
 	const harnessId = useWizardStore(selectHarnessId);
 	const hasProviders = useWizardStore(selectHasProviders);
-	const isPrimaryComplete = useWizardStore(selectIsPrimaryComplete);
-	const isSecondaryComplete = useWizardStore(selectIsSecondaryComplete);
+	const allSlotsComplete = useWizardStore(selectAreAllSlotsComplete);
 
 	// Compute redirect target based on missing requirements
 	const redirectTo = useMemo(() => {
@@ -48,20 +45,11 @@ export function useWizardGuard(requirements: GuardRequirements): GuardResult {
 		if (requirements.providers && !hasProviders) {
 			return ROUTES.flow.providers;
 		}
-		if (requirements.primaryComplete && !isPrimaryComplete) {
-			return ROUTES.flow.modelsPrimary;
-		}
-		if (requirements.secondaryComplete && !isSecondaryComplete) {
-			return ROUTES.flow.modelsSecondary;
+		if (requirements.allSlotsComplete && !allSlotsComplete) {
+			return ROUTES.flow.providers;
 		}
 		return null;
-	}, [
-		requirements,
-		harnessId,
-		hasProviders,
-		isPrimaryComplete,
-		isSecondaryComplete,
-	]);
+	}, [requirements, harnessId, hasProviders, allSlotsComplete]);
 
 	// Navigate when redirect target changes from null to a path
 	useEffect(() => {

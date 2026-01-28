@@ -1,0 +1,86 @@
+{
+	"schemaVersion": 1,
+	"id": "omo",
+	"name": "OhMyOpenCode",
+	"description": "Intelligent agent orchestration with category-based model selection",
+
+	"slots": [
+		{
+			"id": "visual-engineering",
+			"label": "Visual Engineering",
+			"description": "Frontend, UI/UX, and design-focused tasks"
+		},
+		{
+			"id": "ultrabrain",
+			"label": "Ultrabrain",
+			"description": "Complex reasoning, architecture, and strategic tasks"
+		},
+		{
+			"id": "quick",
+			"label": "Quick",
+			"description": "Fast, simple tasks like git operations and quick fixes"
+		},
+		{
+			"id": "writing",
+			"label": "Writing",
+			"description": "Documentation, technical writing, and prose"
+		}
+	],
+
+	"outputs": [
+		{ "path": "oh-my-opencode.json", "label": "OMO Plugin Config" },
+		{ "path": "opencode.jsonc", "label": "OpenCode Config" },
+		{ "path": "ocx.jsonc", "label": "OCX Profile Config" }
+	],
+
+	"templates": [
+		{
+			"output": "oh-my-opencode.json",
+			"template": {
+				"$schema": "https://raw.githubusercontent.com/oh-my-opencode/schema/main/oh-my-opencode.schema.json",
+				"agents": {
+					"sisyphus": { "model": { "$ref": "#/slots/ultrabrain/model" } },
+					"atlas": { "model": { "$ref": "#/slots/ultrabrain/model" } },
+					"oracle": { "model": { "$ref": "#/slots/ultrabrain/model" } },
+					"prometheus": { "model": { "$ref": "#/slots/ultrabrain/model" } },
+					"librarian": { "model": { "$ref": "#/slots/writing/model" } },
+					"metis": { "model": { "$ref": "#/slots/writing/model" } },
+					"momus": { "model": { "$ref": "#/slots/writing/model" } },
+					"explore": { "model": { "$ref": "#/slots/quick/model" } }
+				},
+				"categories": {
+					"visual-engineering": {
+						"model": { "$ref": "#/slots/visual-engineering/model" }
+					},
+					"ultrabrain": { "model": { "$ref": "#/slots/ultrabrain/model" } },
+					"quick": { "model": { "$ref": "#/slots/quick/model" } },
+					"writing": { "model": { "$ref": "#/slots/writing/model" } }
+				}
+			}
+		},
+		{
+			"output": "opencode.jsonc",
+			"template": {
+				"$schema": "https://opencode.ai/config.json",
+				"model": { "$ref": "#/slots/ultrabrain/model" },
+				"small_model": { "$ref": "#/slots/quick/model" },
+				"plugin": ["oh-my-opencode@latest"]
+			}
+		},
+		{
+			"output": "ocx.jsonc",
+			"template": {
+				"$schema": "https://ocx.kdco.dev/schemas/profile.json",
+				"registries": {},
+				"renameWindow": true,
+				"exclude": [
+					"**/CLAUDE.md",
+					"**/CONTEXT.md",
+					"**/.opencode/**",
+					"**/opencode.jsonc",
+					"**/opencode.json"
+				]
+			}
+		}
+	]
+}

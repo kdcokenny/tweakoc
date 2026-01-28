@@ -6,29 +6,26 @@ import { Card } from "~/components/ui/card";
 
 import { createProfile } from "~/lib/api/client";
 import type { GeneratedFile } from "~/lib/api/types";
+import { getHarness } from "~/lib/harness-registry";
 import { useWizardGuard } from "~/lib/hooks";
 import {
+	selectAllSlots,
 	selectHarnessId,
 	selectOptions,
-	selectPrimary,
 	selectProviders,
-	selectSecondary,
 	useWizardStore,
 } from "~/lib/store/wizard-store";
-import { HARNESSES } from "~/lib/wizard-config";
 
 export default function ReviewStep() {
 	const { allowed } = useWizardGuard({
 		harness: true,
 		providers: true,
-		primaryComplete: true,
-		secondaryComplete: true,
+		allSlotsComplete: true,
 	});
 
 	const harnessId = useWizardStore(selectHarnessId);
 	const providers = useWizardStore(selectProviders);
-	const primary = useWizardStore(selectPrimary);
-	const secondary = useWizardStore(selectSecondary);
+	const slots = useWizardStore(selectAllSlots);
 	const options = useWizardStore(selectOptions);
 	const providersById = useWizardStore((s) => s.catalog.providersById);
 	const setReviewStepHandler = useWizardStore((s) => s.setReviewStepHandler);
@@ -48,28 +45,37 @@ export default function ReviewStep() {
 			return;
 		}
 
-		if (!harnessId || !primary.providerId || !primary.modelId) return;
-		if (!secondary.providerId || !secondary.modelId) return;
+		if (!harnessId) return;
+
+		// Validate all slots are complete
+		const allSlotsComplete = Object.values(slots).every(
+			(slot) => slot.providerId && slot.modelId,
+		);
+		if (!allSlotsComplete) return;
 
 		setReviewStepCreating(true);
 		setCreateError(null);
 
 		try {
+			// Build slots for API request
+			const slotsForRequest: Record<
+				string,
+				{ providerId: string; modelId: string }
+			> = {};
+			for (const [slotId, slot] of Object.entries(slots)) {
+				if (slot.providerId && slot.modelId) {
+					slotsForRequest[slotId] = {
+						providerId: slot.providerId,
+						modelId: slot.modelId,
+					};
+				}
+			}
+
 			const result = await createProfile({
 				harnessId,
 				providers,
-				primary: {
-					providerId: primary.providerId,
-					modelId: primary.modelId,
-				},
-				secondary: {
-					providerId: secondary.providerId,
-					modelId: secondary.modelId,
-				},
-				options: {
-					context7: options.context7,
-					renameWindow: options.renameWindow,
-				},
+				slots: slotsForRequest,
+				options,
 			});
 
 			setCreatedProfile({
@@ -86,8 +92,7 @@ export default function ReviewStep() {
 		createdProfile,
 		harnessId,
 		providers,
-		primary,
-		secondary,
+		slots,
 		options,
 		setReviewStepCreating,
 	]);
@@ -100,7 +105,7 @@ export default function ReviewStep() {
 
 	if (!allowed) return null;
 
-	const harness = harnessId ? HARNESSES[harnessId] : null;
+	const harness = harnessId ? getHarness(harnessId) : null;
 
 	const enabledOptions = Object.entries(options)
 		.filter(([_, v]) => v)
@@ -125,29 +130,22 @@ export default function ReviewStep() {
 					</div>
 				</Card>
 
-				{/* Primary Model */}
-				<Card className="p-4">
-					<div className="flex items-center justify-between">
-						<span className="text-sm font-medium">Primary Model</span>
-						<span className="text-sm">
-							{providersById[primary.providerId ?? ""]?.name ??
-								primary.providerId}
-							/{primary.modelId}
-						</span>
-					</div>
-				</Card>
-
-				{/* Secondary Model */}
-				<Card className="p-4">
-					<div className="flex items-center justify-between">
-						<span className="text-sm font-medium">Secondary Model</span>
-						<span className="text-sm">
-							{providersById[secondary.providerId ?? ""]?.name ??
-								secondary.providerId}
-							/{secondary.modelId}
-						</span>
-					</div>
-				</Card>
+				{/* Dynamic Slots */}
+				{harness?.slots.map((slotConfig) => {
+					const slot = slots[slotConfig.id];
+					return (
+						<Card key={slotConfig.id} className="p-4">
+							<div className="flex items-center justify-between">
+								<span className="text-sm font-medium">{slotConfig.label}</span>
+								<span className="text-sm">
+									{providersById[slot?.providerId ?? ""]?.name ??
+										slot?.providerId}
+									/{slot?.modelId}
+								</span>
+							</div>
+						</Card>
+					);
+				})}
 
 				{/* Options (if any) */}
 				{enabledOptions.length > 0 && (
@@ -168,12 +166,12 @@ export default function ReviewStep() {
 
 			{/* Additional Setup Required */}
 			{(() => {
-				// Get unique provider IDs from model slots
+				// Get unique provider IDs from all slots
 				const usedProviderIds = [
 					...new Set(
-						[primary?.providerId, secondary?.providerId].filter(
-							(id): id is string => Boolean(id),
-						),
+						Object.values(slots)
+							.map((slot) => slot.providerId)
+							.filter((id): id is string => Boolean(id)),
 					),
 				];
 

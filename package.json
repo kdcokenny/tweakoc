@@ -2,6 +2,7 @@
 	"name": "tweakoc",
 	"private": true,
 	"type": "module",
+	"packageManager": "bun@1.3.5",
 	"scripts": {
 		"build": "react-router build",
 		"dev": "react-router dev",
@@ -10,7 +11,8 @@
 		"check": "bun check:biome && bun check:types",
 		"check:biome": "biome check .",
 		"check:types": "bun run cf-typegen && react-router typegen && tsc --noEmit",
-		"cf-typegen": "wrangler types"
+		"cf-typegen": "wrangler types",
+		"harness:validate": "bun scripts/validate-harnesses.ts"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.1.0",

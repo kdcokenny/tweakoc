@@ -39,14 +39,10 @@ export interface ModelSlotSelection {
 }
 
 export interface CreateProfileRequest {
-	harnessId: "kdco-workspace" | "omo";
+	harnessId: string;
 	providers: string[];
-	primary: ModelSlotSelection;
-	secondary: ModelSlotSelection;
-	options?: {
-		context7?: boolean;
-		renameWindow?: boolean;
-	};
+	slots: Record<string, { providerId: string; modelId: string }>;
+	options?: Record<string, unknown>;
 }
 
 export interface GeneratedFile {

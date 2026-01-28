@@ -1,7 +1,5 @@
-import type { HarnessId } from "~/lib/wizard-config";
-
 interface FileGeneratorInput {
-	harnessId: HarnessId;
+	harnessId: string;
 	primary: { providerId?: string; modelId?: string };
 	secondary: { providerId?: string; modelId?: string };
 	options: Record<string, boolean>;

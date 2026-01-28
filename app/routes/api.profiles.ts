@@ -3,6 +3,7 @@ import { getCatalog, providerExists } from "~/lib/api/catalog-service";
 import { generateProfileFiles } from "~/lib/api/file-generator";
 import { generateComponentId } from "~/lib/api/id-generator";
 import { checkRateLimit, saveProfile } from "~/lib/api/profile-store";
+import { fetchRegistryFilesWithTimeout } from "~/lib/api/registry-client";
 import { parseCreateProfileRequest } from "~/lib/api/schemas";
 import { createErrorResponse, createJsonResponse } from "~/lib/api/types";
 import type { Route } from "./+types/api.profiles";
@@ -65,31 +66,30 @@ export async function action({ request, context }: Route.ActionArgs) {
 			);
 		}
 
-		// Check primary/secondary providers exist
-		if (!providerExists(catalog, validated.primary.providerId)) {
-			return createErrorResponse(
-				"INVALID_PROVIDER",
-				`Unknown primary provider: ${validated.primary.providerId}`,
-				400,
-			);
-		}
-		if (!providerExists(catalog, validated.secondary.providerId)) {
-			return createErrorResponse(
-				"INVALID_PROVIDER",
-				`Unknown secondary provider: ${validated.secondary.providerId}`,
-				400,
-			);
+		// Validate slot providers exist in catalog
+		for (const [slotId, slot] of Object.entries(validated.slots)) {
+			if (!providerExists(catalog, slot.providerId)) {
+				return createErrorResponse(
+					"INVALID_PROVIDER",
+					`Unknown provider for slot "${slotId}": ${slot.providerId}`,
+					400,
+				);
+			}
 		}
 
 		// Generate files
-		const { files } = generateProfileFiles(validated);
+		const generatedFiles = generateProfileFiles(
+			validated.harnessId,
+			validated.slots,
+			validated.options ?? {},
+		);
 
 		// Generate ID and save (with retry on collision)
 		let componentId: string | undefined;
 		let saved = false;
 		for (let attempt = 0; attempt < 3; attempt++) {
 			componentId = generateComponentId();
-			saved = await saveProfile(kv, componentId, validated, files);
+			saved = await saveProfile(kv, componentId, validated, generatedFiles);
 			if (saved) break;
 		}
 
@@ -101,7 +101,28 @@ export async function action({ request, context }: Route.ActionArgs) {
 			);
 		}
 
-		return createJsonResponse({ componentId, files }, { status: 200 });
+		// Fetch from registry (single source of truth)
+		const registryUrl = context.cloudflare.env.REGISTRY_URL;
+		try {
+			const registryFiles = await fetchRegistryFilesWithTimeout(
+				registryUrl,
+				componentId,
+			);
+			return createJsonResponse(
+				{ componentId, files: registryFiles },
+				{ status: 200 },
+			);
+		} catch (error) {
+			console.error("Registry fetch failed:", error);
+			return createErrorResponse(
+				"REGISTRY_FETCH_ERROR",
+				error instanceof Error
+					? error.message
+					: "Failed to fetch files from registry",
+				500,
+				{ componentId },
+			);
+		}
 	} catch (error) {
 		if (error instanceof ZodError) {
 			return createErrorResponse(
