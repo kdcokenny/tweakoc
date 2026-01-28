@@ -1,10 +1,10 @@
 "use client";
 
 import { ChevronDown, ChevronUp } from "lucide-react";
-import type { ReactElement } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CodeBlockCommand } from "~/components/code-block-command";
 import { CodeBlockTabs } from "~/components/code-block-tabs";
+import { FilesViewer } from "~/components/files-viewer";
 import { Button } from "~/components/ui/button";
 import {
 	Collapsible,
@@ -17,16 +17,18 @@ import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import type { GeneratedFile } from "~/lib/api/types";
 import { selectHarnessId, useWizardStore } from "~/lib/store/wizard-store";
 import { HARNESSES } from "~/lib/wizard-config";
 
 interface CreateProfileModalProps {
-	children: ReactElement;
-	componentId?: string; // Optional, if not provided, shows placeholder
-	onViewFiles?: () => void;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	componentId?: string;
+	files?: GeneratedFile[];
 }
 
 // Profile name validation: starts with letter, max 32 chars, allowed [a-zA-Z0-9._-]
@@ -42,11 +44,12 @@ function validateProfileName(name: string): string | null {
 }
 
 export function CreateProfileModal({
-	children,
+	open,
+	onOpenChange,
 	componentId,
-	onViewFiles,
+	files,
 }: CreateProfileModalProps) {
-	const [open, setOpen] = useState(false);
+	const [activeTab, setActiveTab] = useState("install");
 	const [ocxHelpOpen, setOcxHelpOpen] = useState(false);
 	const harnessId = useWizardStore(selectHarnessId);
 
@@ -55,6 +58,13 @@ export function CreateProfileModal({
 		? (HARNESSES[harnessId]?.defaultProfileName ?? "my-profile")
 		: "my-profile";
 	const [profileName, setProfileName] = useState(defaultName);
+
+	// Reset tab to "install" when modal closes
+	useEffect(() => {
+		if (!open) {
+			setActiveTab("install");
+		}
+	}, [open]);
 
 	// Validate profile name
 	const validationError = useMemo(
@@ -71,9 +81,8 @@ export function CreateProfileModal({
 		"ocx registry add https://tweak.kdco.dev/r --name tweak --global";
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger render={children} />
-			<DialogContent>
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
 				<DialogHeader>
 					<DialogTitle>Create Profile</DialogTitle>
 					<DialogDescription>
@@ -81,78 +90,94 @@ export function CreateProfileModal({
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="flex flex-col gap-6 mt-4 min-w-0">
-					{/* Profile name input */}
-					<div className="flex flex-col gap-2">
-						<label htmlFor="profile-name" className="text-sm font-medium">
-							Profile Name
-						</label>
-						<Input
-							id="profile-name"
-							value={profileName}
-							onChange={(e) => setProfileName(e.target.value)}
-							placeholder="my-profile"
-							className={validationError ? "border-destructive" : ""}
-						/>
-						{validationError && (
-							<p className="text-xs text-destructive">{validationError}</p>
-						)}
-					</div>
+				<Tabs
+					value={activeTab}
+					onValueChange={setActiveTab}
+					className="flex flex-col flex-1"
+				>
+					<TabsList>
+						<TabsTrigger value="install">Install</TabsTrigger>
+						<TabsTrigger value="files">Files</TabsTrigger>
+					</TabsList>
 
-					{/* First time using OCX? */}
-					<Collapsible open={ocxHelpOpen} onOpenChange={setOcxHelpOpen}>
-						<CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-							First time using OCX?
-							{ocxHelpOpen ? (
-								<ChevronUp className="h-4 w-4" />
-							) : (
-								<ChevronDown className="h-4 w-4" />
-							)}
-						</CollapsibleTrigger>
-						<CollapsibleContent className="mt-3 flex flex-col gap-4">
-							<div>
-								<p className="text-sm text-muted-foreground mb-2">
-									1. Install OCX:
-								</p>
-								<CodeBlockTabs
-									commands={{
-										bash: "curl -fsSL https://ocx.kdco.dev/install.sh | sh",
-										npm: "npm install -g ocx",
-										pnpm: "pnpm add -g ocx",
-										bun: "bun add -g ocx",
-									}}
-									defaultTab="bash"
+					<TabsContent value="install" className="flex-1 overflow-auto">
+						<div className="flex flex-col gap-6 mt-4 min-w-0">
+							{/* Profile name input */}
+							<div className="flex flex-col gap-2">
+								<label htmlFor="profile-name" className="text-sm font-medium">
+									Profile Name
+								</label>
+								<Input
+									id="profile-name"
+									value={profileName}
+									onChange={(e) => setProfileName(e.target.value)}
+									placeholder="my-profile"
+									className={validationError ? "border-destructive" : ""}
 								/>
+								{validationError && (
+									<p className="text-xs text-destructive">{validationError}</p>
+								)}
 							</div>
-							<div>
-								<p className="text-sm text-muted-foreground mb-2">
-									2. Initialize OCX (one-time setup):
-								</p>
-								<CodeBlockCommand command="ocx init --global" />
-							</div>
-							<div>
-								<p className="text-sm text-muted-foreground mb-2">
-									3. Add the tweak registry:
-								</p>
-								<CodeBlockCommand command={registryCommand} />
-							</div>
-						</CollapsibleContent>
-					</Collapsible>
 
-					{/* Main install command */}
-					<div className="min-w-0">
-						<p className="text-sm font-medium mb-2">Install this profile:</p>
-						<CodeBlockCommand command={primaryCommand} />
-					</div>
+							{/* First time using OCX? */}
+							<Collapsible open={ocxHelpOpen} onOpenChange={setOcxHelpOpen}>
+								<CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+									First time using OCX?
+									{ocxHelpOpen ? (
+										<ChevronUp className="h-4 w-4" />
+									) : (
+										<ChevronDown className="h-4 w-4" />
+									)}
+								</CollapsibleTrigger>
+								<CollapsibleContent className="mt-3 flex flex-col gap-4">
+									<div>
+										<p className="text-sm text-muted-foreground mb-2">
+											1. Install OCX:
+										</p>
+										<CodeBlockTabs
+											commands={{
+												bash: "curl -fsSL https://ocx.kdco.dev/install.sh | sh",
+												npm: "npm install -g ocx",
+												pnpm: "pnpm add -g ocx",
+												bun: "bun add -g ocx",
+											}}
+											defaultTab="bash"
+										/>
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground mb-2">
+											2. Initialize OCX (one-time setup):
+										</p>
+										<CodeBlockCommand command="ocx init --global" />
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground mb-2">
+											3. Add the tweak registry:
+										</p>
+										<CodeBlockCommand command={registryCommand} />
+									</div>
+								</CollapsibleContent>
+							</Collapsible>
 
-					{/* Action buttons */}
-					<div className="flex items-center justify-between pt-2">
-						<Button variant="outline" onClick={() => onViewFiles?.()}>
-							View files
-						</Button>
-						<Button onClick={() => setOpen(false)}>Done</Button>
-					</div>
-				</div>
+							{/* Main install command */}
+							<div className="min-w-0">
+								<p className="text-sm font-medium mb-2">
+									Install this profile:
+								</p>
+								<CodeBlockCommand command={primaryCommand} />
+							</div>
+
+							{/* Action buttons */}
+							<div className="flex items-center justify-end pt-2">
+								<Button onClick={() => onOpenChange(false)}>Done</Button>
+							</div>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="files" className="flex-1 overflow-auto">
+						<FilesViewer files={files ?? []} />
+					</TabsContent>
+				</Tabs>
 			</DialogContent>
 		</Dialog>
 	);

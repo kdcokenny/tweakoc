@@ -27,6 +27,7 @@ export default function RootLayout() {
 	const harnessId = useWizardStore(selectHarnessId);
 	const returnToStep = useWizardStore(selectReturnToStep);
 	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
+	const reviewStepCreating = useWizardStore((s) => s.reviewStepCreating);
 
 	// Preload provider catalog for deep links
 	const ensureProvidersLoaded = useWizardStore((s) => s.ensureProvidersLoaded);
@@ -59,6 +60,15 @@ export default function RootLayout() {
 
 	// Navigation handlers
 	const handleNext = () => {
+		// Special case: review step - call the registered handler
+		if (currentStepId === "review") {
+			const handler = useWizardStore.getState().reviewStepHandler;
+			if (handler) {
+				void handler();
+				return;
+			}
+		}
+
 		// If returnToStep is set, go there instead of natural next
 		if (returnToStep) {
 			const returnPath =
@@ -82,11 +92,16 @@ export default function RootLayout() {
 	// Next button label
 	const nextLabel = getNextLabel(currentStepId, harnessId);
 
-	// Can go back? (not on step 1)
-	const canGoBack = currentIndex > 0;
+	// Can go back? (not on step 1, and not while creating)
+	const canGoBack = currentIndex > 0 && !reviewStepCreating;
 
-	// Can go next? (harness step: only if harness selected)
-	const canGoNext = currentStepId === "harness" ? !!harnessId : true;
+	// Can go next? (harness step: only if harness selected; review step: not while creating)
+	const canGoNext =
+		currentStepId === "harness"
+			? !!harnessId
+			: currentStepId === "review"
+				? !reviewStepCreating
+				: true;
 
 	return (
 		<WizardFrame

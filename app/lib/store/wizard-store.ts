@@ -31,6 +31,10 @@ interface WizardState {
 
 	// Provider catalog (loaded from API)
 	catalog: CatalogState;
+
+	// Review step handler and state
+	reviewStepHandler?: () => void | Promise<void>;
+	reviewStepCreating?: boolean;
 }
 
 interface WizardActions {
@@ -47,14 +51,18 @@ interface WizardActions {
 	// Backtracking
 	setReturnToStep: (step?: "primary" | "secondary") => void;
 
-	// Provider removal effects
+	// Review step handler
+	setReviewStepHandler: (handler?: () => void | Promise<void>) => void;
+	setReviewStepCreating: (creating: boolean) => void;
+
+	// Banner
+	dismissBanner: () => void;
+
+	// Provider changes
 	applyProviderChanges: (
 		prevProviders: string[],
 		nextProviders: string[],
 	) => void;
-
-	// Banner
-	dismissBanner: () => void;
 
 	// Catalog loading
 	ensureProvidersLoaded: () => Promise<void>;
@@ -131,6 +139,14 @@ export const useWizardStore = create<WizardState & WizardActions>(
 
 		setReturnToStep: (step) => {
 			set({ returnToStep: step });
+		},
+
+		setReviewStepHandler: (handler) => {
+			set({ reviewStepHandler: handler });
+		},
+
+		setReviewStepCreating: (creating) => {
+			set({ reviewStepCreating: creating });
 		},
 
 		applyProviderChanges: (prevProviders, nextProviders) => {

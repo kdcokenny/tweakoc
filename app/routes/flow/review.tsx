@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdditionalSetupRequired } from "~/components/additional-setup-required";
 import { CreateProfileModal } from "~/components/create-profile-modal";
 import { Badge } from "~/components/ui/badge";
-import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { ViewFilesDialog } from "~/components/view-files-dialog";
+
 import { createProfile } from "~/lib/api/client";
 import type { GeneratedFile } from "~/lib/api/types";
 import { useWizardGuard } from "~/lib/hooks";
@@ -32,28 +31,27 @@ export default function ReviewStep() {
 	const secondary = useWizardStore(selectSecondary);
 	const options = useWizardStore(selectOptions);
 	const providersById = useWizardStore((s) => s.catalog.providersById);
+	const setReviewStepHandler = useWizardStore((s) => s.setReviewStepHandler);
+	const setReviewStepCreating = useWizardStore((s) => s.setReviewStepCreating);
 
-	const [viewFilesOpen, setViewFilesOpen] = useState(false);
 	const [createdProfile, setCreatedProfile] = useState<{
 		componentId: string;
 		files: GeneratedFile[];
 	} | null>(null);
-	const [creating, setCreating] = useState(false);
 	const [createError, setCreateError] = useState<string | null>(null);
+	const [modalOpen, setModalOpen] = useState(false);
 
-	if (!allowed) return null;
+	const handleCreateProfile = useCallback(async () => {
+		// If already created, just open the modal
+		if (createdProfile) {
+			setModalOpen(true);
+			return;
+		}
 
-	const harness = harnessId ? HARNESSES[harnessId] : null;
-
-	const enabledOptions = Object.entries(options)
-		.filter(([_, v]) => v)
-		.map(([k]) => k);
-
-	const handleCreateProfile = async () => {
 		if (!harnessId || !primary.providerId || !primary.modelId) return;
 		if (!secondary.providerId || !secondary.modelId) return;
 
-		setCreating(true);
+		setReviewStepCreating(true);
 		setCreateError(null);
 
 		try {
@@ -78,12 +76,35 @@ export default function ReviewStep() {
 				componentId: result.componentId,
 				files: result.files,
 			});
+			setModalOpen(true);
 		} catch (err) {
 			setCreateError(err instanceof Error ? err.message : "Unknown error");
 		} finally {
-			setCreating(false);
+			setReviewStepCreating(false);
 		}
-	};
+	}, [
+		createdProfile,
+		harnessId,
+		providers,
+		primary,
+		secondary,
+		options,
+		setReviewStepCreating,
+	]);
+
+	// Register handler with wizard store
+	useEffect(() => {
+		setReviewStepHandler(handleCreateProfile);
+		return () => setReviewStepHandler(undefined);
+	}, [setReviewStepHandler, handleCreateProfile]);
+
+	if (!allowed) return null;
+
+	const harness = harnessId ? HARNESSES[harnessId] : null;
+
+	const enabledOptions = Object.entries(options)
+		.filter(([_, v]) => v)
+		.map(([k]) => k);
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
@@ -169,25 +190,6 @@ export default function ReviewStep() {
 				return <AdditionalSetupRequired providers={usedProviders} />;
 			})()}
 
-			{/* Action buttons */}
-			<div className="flex items-center justify-between pt-4">
-				<Button variant="outline" onClick={() => setViewFilesOpen(true)}>
-					View files
-				</Button>
-				{createdProfile ? (
-					<CreateProfileModal
-						componentId={createdProfile.componentId}
-						onViewFiles={() => setViewFilesOpen(true)}
-					>
-						<Button size="lg">View Install Instructions</Button>
-					</CreateProfileModal>
-				) : (
-					<Button size="lg" onClick={handleCreateProfile} disabled={creating}>
-						{creating ? "Creating..." : "Create Profile"}
-					</Button>
-				)}
-			</div>
-
 			{/* Error message */}
 			{createError && (
 				<div className="text-sm text-destructive">
@@ -195,10 +197,11 @@ export default function ReviewStep() {
 				</div>
 			)}
 
-			{/* View Files Dialog */}
-			<ViewFilesDialog
-				open={viewFilesOpen}
-				onOpenChange={setViewFilesOpen}
+			{/* Create Profile Modal */}
+			<CreateProfileModal
+				open={modalOpen}
+				onOpenChange={setModalOpen}
+				componentId={createdProfile?.componentId}
 				files={createdProfile?.files}
 			/>
 		</div>
