@@ -21,4 +21,14 @@ export default [
 		route("flow/options", "routes/flow/options.tsx"),
 		route("flow/review", "routes/flow/review.tsx"),
 	]),
+
+	// API routes (resource routes, no UI)
+	route("api/providers", "routes/api.providers.ts"),
+	route("api/providers/:id/models", "routes/api.providers.$id.models.ts"),
+	route("api/profiles", "routes/api.profiles.ts"),
+	route("api/profiles/:id", "routes/api.profiles.$id.ts"),
+
+	// OCX Registry routes
+	route("r/index.json", "routes/r.index[.]json.ts"),
+	route("r/components/*", "routes/r.components.$.ts"),
 ] satisfies RouteConfig;

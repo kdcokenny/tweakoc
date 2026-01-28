@@ -1,9 +1,18 @@
 import { create } from "zustand";
+import { fetchProviders } from "~/lib/api/client";
+import type { ProviderSummary } from "~/lib/api/types";
 import type { HarnessId } from "~/lib/wizard-config";
 
 interface ModelSlot {
 	providerId?: string;
 	modelId?: string;
+}
+
+interface CatalogState {
+	providersById: Record<string, ProviderSummary>;
+	providersOrder: string[]; // sorted alphabetically by name
+	status: "idle" | "loading" | "ready" | "error";
+	error?: string;
 }
 
 interface WizardState {
@@ -19,6 +28,9 @@ interface WizardState {
 
 	// Calm banner (for provider removal effects)
 	banner?: { message: string; dismissKey: string };
+
+	// Provider catalog (loaded from API)
+	catalog: CatalogState;
 }
 
 interface WizardActions {
@@ -44,6 +56,9 @@ interface WizardActions {
 	// Banner
 	dismissBanner: () => void;
 
+	// Catalog loading
+	ensureProvidersLoaded: () => Promise<void>;
+
 	// Reset
 	reset: () => void;
 }
@@ -53,7 +68,15 @@ const initialState: WizardState = {
 	primary: {},
 	secondary: {},
 	options: {},
+	catalog: {
+		providersById: {},
+		providersOrder: [],
+		status: "idle",
+	},
 };
+
+// Module-level for stampede protection - NOT part of store state
+let _catalogInFlight: Promise<void> | null = null;
 
 export const useWizardStore = create<WizardState & WizardActions>(
 	(set, get) => ({
@@ -152,8 +175,77 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			set({ banner: undefined });
 		},
 
+		ensureProvidersLoaded: async () => {
+			const { catalog } = get();
+
+			// Guard: already ready
+			if (catalog.status === "ready") return;
+
+			// Guard: already loading - await existing promise
+			if (catalog.status === "loading" && _catalogInFlight) {
+				return _catalogInFlight;
+			}
+
+			// Set loading BEFORE creating promise (synchronous)
+			set({ catalog: { ...catalog, status: "loading", error: undefined } });
+
+			_catalogInFlight = (async () => {
+				try {
+					const response = await fetchProviders();
+
+					// Normalize at boundary - parse, don't validate
+					const providersById: Record<string, ProviderSummary> = {};
+					for (const p of response.providers) {
+						if (!p.id || !p.name) {
+							console.error("Skipping invalid provider:", p);
+							continue;
+						}
+						providersById[p.id] = p;
+					}
+
+					// Sort by display name for consistent ordering
+					const providersOrder = Object.values(providersById)
+						.sort((a, b) => a.name.localeCompare(b.name))
+						.map((p) => p.id);
+
+					set({
+						catalog: {
+							providersById,
+							providersOrder,
+							status: "ready",
+							error: undefined,
+						},
+					});
+				} catch (error) {
+					set({
+						catalog: {
+							...get().catalog,
+							status: "error",
+							error:
+								error instanceof Error
+									? error.message
+									: "Failed to load providers",
+						},
+					});
+				} finally {
+					_catalogInFlight = null; // Always clear for retry
+				}
+			})();
+
+			return _catalogInFlight;
+		},
+
 		reset: () => {
-			set(initialState);
+			set({
+				harnessId: undefined,
+				providers: [],
+				primary: {},
+				secondary: {},
+				options: {},
+				returnToStep: undefined,
+				banner: undefined,
+				// Note: catalog is NOT reset - it's cached data
+			});
 		},
 	}),
 );
@@ -175,3 +267,20 @@ export const selectIsPrimaryComplete = (state: WizardState) =>
 	!!state.primary.providerId && !!state.primary.modelId;
 export const selectIsSecondaryComplete = (state: WizardState) =>
 	!!state.secondary.providerId && !!state.secondary.modelId;
+
+// Catalog selectors - MUST return stable references (no .map/.filter in selectors!)
+export const selectCatalogStatus = (state: WizardState & WizardActions) =>
+	state.catalog.status;
+export const selectCatalogError = (state: WizardState & WizardActions) =>
+	state.catalog.error;
+
+// Stable selectors - return raw store references
+export const selectCatalogProviderIds = (state: WizardState & WizardActions) =>
+	state.catalog.providersOrder;
+export const selectCatalogProvidersById = (
+	state: WizardState & WizardActions,
+) => state.catalog.providersById;
+
+export const selectProviderById =
+	(id: string) => (state: WizardState & WizardActions) =>
+		state.catalog.providersById[id];

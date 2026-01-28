@@ -1,37 +1,38 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { useState } from "react";
 import { Badge } from "~/components/ui/badge";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "~/components/ui/collapsible";
-import type { AuthBadge, Provider } from "~/lib/mock/catalog";
+import type { ProviderAuthType } from "~/lib/api/types";
 import { cn } from "~/lib/utils";
 
 interface ProviderRowProps {
-	provider: Provider;
+	provider: {
+		id: string;
+		name: string;
+		authType: ProviderAuthType;
+		envHints: string[];
+		setupSteps?: string;
+	};
 	selected: boolean;
 	onToggle: () => void;
 }
 
-const AUTH_BADGE_LABELS: Record<AuthBadge, string> = {
-	"api-key": "API Key",
+const AUTH_BADGE_LABELS: Record<ProviderAuthType, string> = {
+	api_key: "API Key",
 	oauth: "OAuth",
-	"aws-creds": "AWS Creds",
+	aws_creds: "AWS Creds",
 	local: "Local",
 	gateway: "Gateway",
+	unknown: "Unknown",
 };
 
 const AUTH_BADGE_VARIANTS: Record<
-	AuthBadge,
+	ProviderAuthType,
 	"default" | "secondary" | "outline"
 > = {
-	"api-key": "secondary",
+	api_key: "secondary",
 	oauth: "default",
-	"aws-creds": "outline",
+	aws_creds: "outline",
 	local: "secondary",
 	gateway: "default",
+	unknown: "outline",
 };
 
 export function ProviderRow({
@@ -39,13 +40,12 @@ export function ProviderRow({
 	selected,
 	onToggle,
 }: ProviderRowProps) {
-	const [isOpen, setIsOpen] = useState(false);
-
 	return (
-		<div
+		<label
 			className={cn(
-				"rounded-lg border p-3 transition-colors",
+				"w-full rounded-lg border p-3 transition-colors cursor-pointer text-left block",
 				selected && "border-primary bg-primary/5",
+				"hover:border-primary/50",
 			)}
 		>
 			<div className="flex items-center gap-3">
@@ -54,15 +54,15 @@ export function ProviderRow({
 					type="checkbox"
 					checked={selected}
 					onChange={onToggle}
-					className="h-4 w-4 rounded border-input accent-primary"
+					className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
 				/>
 
 				{/* Provider info */}
 				<div className="flex-1 min-w-0">
 					<div className="flex items-center gap-2">
 						<span className="font-medium truncate">{provider.name}</span>
-						<Badge variant={AUTH_BADGE_VARIANTS[provider.authBadge]}>
-							{AUTH_BADGE_LABELS[provider.authBadge]}
+						<Badge variant={AUTH_BADGE_VARIANTS[provider.authType]}>
+							{AUTH_BADGE_LABELS[provider.authType]}
 						</Badge>
 					</div>
 					{provider.envHints.length > 0 && (
@@ -71,28 +71,7 @@ export function ProviderRow({
 						</p>
 					)}
 				</div>
-
-				{/* Setup collapsible trigger */}
-				<Collapsible open={isOpen} onOpenChange={setIsOpen}>
-					<CollapsibleTrigger className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-						Setup
-						{isOpen ? (
-							<ChevronUp className="h-3 w-3" />
-						) : (
-							<ChevronDown className="h-3 w-3" />
-						)}
-					</CollapsibleTrigger>
-				</Collapsible>
 			</div>
-
-			{/* Setup content */}
-			<Collapsible open={isOpen} onOpenChange={setIsOpen}>
-				<CollapsibleContent>
-					<pre className="mt-3 p-3 bg-muted rounded text-xs whitespace-pre-wrap font-mono">
-						{provider.setupSteps}
-					</pre>
-				</CollapsibleContent>
-			</Collapsible>
-		</div>
+		</label>
 	);
 }

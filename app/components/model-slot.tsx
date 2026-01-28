@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -10,7 +10,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "~/components/ui/select";
-import { getProviderById } from "~/lib/mock/catalog";
+import { createAPIModelLoader } from "~/lib/api/client";
+import type { ProviderSummary } from "~/lib/api/types";
 import { ROUTES } from "~/lib/routes";
 import {
 	selectDefaultProvider,
@@ -34,17 +35,41 @@ export function ModelSlot({ slot }: ModelSlotProps) {
 	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
 	const banner = useWizardStore((s) => s.banner);
 	const dismissBanner = useWizardStore((s) => s.dismissBanner);
+	const providersById = useWizardStore((s) => s.catalog.providersById);
+	const ensureProvidersLoaded = useWizardStore((s) => s.ensureProvidersLoaded);
+
+	// Defensive load - idempotent if already loaded
+	useEffect(() => {
+		void ensureProvidersLoaded();
+	}, [ensureProvidersLoaded]);
 
 	// Current provider (defaults to first selected if not set)
 	const currentProviderId = slotData.providerId ?? defaultProvider;
 
-	// Sort providers alphabetically for display
-	const sortedProviders = useMemo(() => {
-		return [...providers]
-			.map((id) => getProviderById(id))
-			.filter(Boolean)
-			.sort((a, b) => (a?.name ?? "").localeCompare(b?.name ?? ""));
-	}, [providers]);
+	// Map selected providers - keep unknown ones visible with warning!
+	interface UIProvider extends ProviderSummary {
+		isUnknown?: boolean;
+	}
+
+	const sortedProviders = useMemo((): UIProvider[] => {
+		return providers
+			.map((id): UIProvider => {
+				const provider = providersById[id];
+				if (provider) {
+					return { ...provider, isUnknown: false };
+				}
+				// Unknown provider - don't drop, show with warning
+				return {
+					id,
+					name: `Unknown provider (${id})`,
+					authType: "unknown",
+					envHints: [],
+					modelCount: 0,
+					isUnknown: true,
+				};
+			})
+			.sort((a, b) => a.name.localeCompare(b.name));
+	}, [providers, providersById]);
 
 	const handleProviderChange = (providerId: string | null) => {
 		if (providerId) {
@@ -65,6 +90,12 @@ export function ModelSlot({ slot }: ModelSlotProps) {
 	};
 
 	const showProviderDropdown = providers.length > 1;
+
+	// Memoize model loader to prevent recreation on every render
+	const modelLoader = useMemo(
+		() => createAPIModelLoader(currentProviderId),
+		[currentProviderId],
+	);
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -91,13 +122,30 @@ export function ModelSlot({ slot }: ModelSlotProps) {
 						onValueChange={handleProviderChange}
 					>
 						<SelectTrigger>
-							<SelectValue placeholder="Select provider" />
+							<SelectValue>
+								{currentProviderId
+									? (providersById[currentProviderId]?.name ??
+										currentProviderId)
+									: "Select provider"}
+							</SelectValue>
 						</SelectTrigger>
 						<SelectContent>
 							{sortedProviders.map((provider) => (
-								<SelectItem key={provider?.id} value={provider?.id}>
+								<SelectItem
+									key={provider.id}
+									value={provider.id}
+									disabled={provider.isUnknown}
+									className={
+										provider.isUnknown ? "text-muted-foreground" : undefined
+									}
+								>
 									<div className="flex items-center gap-2">
-										<span>{provider?.name}</span>
+										<span>{provider.name}</span>
+										{provider.isUnknown && (
+											<span className="text-xs text-amber-500">
+												(unavailable)
+											</span>
+										)}
 									</div>
 								</SelectItem>
 							))}
@@ -108,7 +156,9 @@ export function ModelSlot({ slot }: ModelSlotProps) {
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-medium">Provider:</span>
 					<Badge variant="secondary">
-						{getProviderById(currentProviderId ?? "")?.name ?? "None selected"}
+						{providersById[currentProviderId ?? ""]?.name ??
+							currentProviderId ??
+							"None selected"}
 					</Badge>
 				</div>
 			)}
@@ -122,6 +172,7 @@ export function ModelSlot({ slot }: ModelSlotProps) {
 						value={slotData.modelId}
 						onChange={handleModelChange}
 						onClear={() => setSlotModel(slot, undefined)}
+						loader={modelLoader}
 					/>
 				) : (
 					<p className="text-sm text-muted-foreground">
@@ -143,7 +194,7 @@ export function ModelSlot({ slot }: ModelSlotProps) {
 				{/* Env var hints */}
 				{currentProviderId && (
 					<div className="text-xs text-muted-foreground">
-						{getProviderById(currentProviderId)?.envHints.join(", ")}
+						{providersById[currentProviderId]?.envHints.join(", ")}
 					</div>
 				)}
 			</div>

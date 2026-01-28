@@ -1,8 +1,15 @@
 {
 	"name": "tweakoc",
-	"compatibility_date": "2025-01-01",
-	"main": "./build/server/index.js",
+	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_date": "2026-01-28",
+	"main": "./workers/app.ts",
 	"assets": {
 		"directory": "./build/client"
-	}
+	},
+	"kv_namespaces": [
+		{
+			"binding": "PROFILES_KV",
+			"id": "96baabfb315f4cc192584345f04341d0"
+		}
+	]
 }

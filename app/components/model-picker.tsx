@@ -36,18 +36,31 @@ export function ModelPicker({
 	const [loadingMore, setLoadingMore] = useState(false);
 	const [nextCursor, setNextCursor] = useState<string | undefined>();
 	const [hasMore, setHasMore] = useState(false);
-	const [searchValue, setSearchValue] = useState("");
+	const [searchQuery, setSearchQuery] = useState<string | null>(null);
+	const [cachedModel, setCachedModel] = useState<Model | null>(null);
 
 	// Request tracking
 	const requestIdRef = useRef(0);
 	const abortControllerRef = useRef<AbortController | null>(null);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const sentinelRef = useRef<HTMLDivElement | null>(null);
+	const skipNextDebounce = useRef(false);
 
 	// Find selected model object from ID
 	const selectedModel = useMemo(() => {
-		return items.find((m) => m.id === value) ?? null;
-	}, [items, value]);
+		// Prefer fresh data from items
+		const fromItems = items.find((m) => m.id === value);
+		if (fromItems) return fromItems;
+		// Fallback to cached when not in current page
+		if (cachedModel && cachedModel.id === value) return cachedModel;
+		return null;
+	}, [items, value, cachedModel]);
+
+	// Determine display value for input
+	const inputDisplayValue = useMemo(() => {
+		if (searchQuery !== null) return searchQuery;
+		return selectedModel?.name ?? "";
+	}, [searchQuery, selectedModel]);
 
 	// Fetch models
 	const fetchModels = useCallback(
@@ -101,18 +114,26 @@ export function ModelPicker({
 		setItems([]);
 		setNextCursor(undefined);
 		setHasMore(false);
-		setSearchValue("");
+		setSearchQuery(null);
+		setCachedModel(null);
+		skipNextDebounce.current = true;
 		fetchModels("");
 	}, [providerId, fetchModels]);
 
 	// Debounced search
 	useEffect(() => {
+		if (skipNextDebounce.current) {
+			skipNextDebounce.current = false;
+			return;
+		}
+
 		if (debounceRef.current) {
 			clearTimeout(debounceRef.current);
 		}
 
+		const query = searchQuery ?? "";
 		debounceRef.current = setTimeout(() => {
-			fetchModels(searchValue);
+			fetchModels(query);
 		}, 300);
 
 		return () => {
@@ -120,7 +141,7 @@ export function ModelPicker({
 				clearTimeout(debounceRef.current);
 			}
 		};
-	}, [searchValue, fetchModels]);
+	}, [searchQuery, fetchModels]);
 
 	// Infinite scroll
 	useEffect(() => {
@@ -134,7 +155,7 @@ export function ModelPicker({
 					!loadingMore &&
 					nextCursor
 				) {
-					fetchModels(searchValue, nextCursor);
+					fetchModels(searchQuery ?? "", nextCursor);
 				}
 			},
 			{ threshold: 0.1 },
@@ -142,7 +163,7 @@ export function ModelPicker({
 
 		observer.observe(sentinelRef.current);
 		return () => observer.disconnect();
-	}, [hasMore, loadingMore, loading, nextCursor, searchValue, fetchModels]);
+	}, [hasMore, loadingMore, loading, nextCursor, searchQuery, fetchModels]);
 
 	// Cleanup
 	useEffect(() => {
@@ -166,9 +187,11 @@ export function ModelPicker({
 	// Handle selection - receives Model object, extracts ID for store
 	const handleValueChange = (model: Model | null) => {
 		if (model) {
-			onChange(model.id); // Store only the ID
-			setSearchValue(""); // Clear search on selection
+			onChange(model.id);
+			setCachedModel(model);
+			setSearchQuery(null);
 		} else if (onClear) {
+			setCachedModel(null);
 			onClear();
 		}
 	};
@@ -179,7 +202,7 @@ export function ModelPicker({
 		details: { reason: string },
 	) => {
 		if (details.reason !== "item-press") {
-			setSearchValue(newValue);
+			setSearchQuery(newValue);
 		}
 	};
 
@@ -187,7 +210,7 @@ export function ModelPicker({
 		<Combobox
 			value={selectedModel}
 			onValueChange={handleValueChange}
-			inputValue={searchValue}
+			inputValue={inputDisplayValue}
 			onInputValueChange={handleInputValueChange}
 			itemToStringLabel={(model: Model) => model.name}
 			itemToStringValue={(model: Model) => model.id}

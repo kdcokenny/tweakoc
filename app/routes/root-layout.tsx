@@ -28,6 +28,13 @@ export default function RootLayout() {
 	const returnToStep = useWizardStore(selectReturnToStep);
 	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
 
+	// Preload provider catalog for deep links
+	const ensureProvidersLoaded = useWizardStore((s) => s.ensureProvidersLoaded);
+
+	useEffect(() => {
+		void ensureProvidersLoaded();
+	}, [ensureProvidersLoaded]);
+
 	// Derive step from path (deterministic map lookup)
 	const currentStepId = (PATH_TO_STEP[location.pathname] ??
 		"harness") as StepId;

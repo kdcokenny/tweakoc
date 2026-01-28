@@ -25,6 +25,7 @@ import { HARNESSES } from "~/lib/wizard-config";
 
 interface CreateProfileModalProps {
 	children: ReactElement;
+	componentId?: string; // Optional, if not provided, shows placeholder
 	onViewFiles?: () => void;
 }
 
@@ -42,6 +43,7 @@ function validateProfileName(name: string): string | null {
 
 export function CreateProfileModal({
 	children,
+	componentId,
 	onViewFiles,
 }: CreateProfileModalProps) {
 	const [open, setOpen] = useState(false);
@@ -60,11 +62,13 @@ export function CreateProfileModal({
 		[profileName],
 	);
 
-	// Placeholder component ID (will be real in Phase 2)
-	const componentId = "p-placeholder";
+	// Use provided componentId or placeholder
+	const finalComponentId = componentId ?? "p-placeholder";
 
-	// Install command
-	const installCommand = `ocx registry add https://tweak.kdco.dev/r --name tweak --global && ocx profile add ${profileName} --from tweak/${componentId}`;
+	// Commands
+	const primaryCommand = `ocx profile add ${profileName} --from tweak/${finalComponentId}`;
+	const registryCommand =
+		"ocx registry add https://tweak.kdco.dev/r --name tweak --global";
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -126,13 +130,19 @@ export function CreateProfileModal({
 								</p>
 								<CodeBlockCommand command="ocx init --global" />
 							</div>
+							<div>
+								<p className="text-sm text-muted-foreground mb-2">
+									3. Add the tweak registry:
+								</p>
+								<CodeBlockCommand command={registryCommand} />
+							</div>
 						</CollapsibleContent>
 					</Collapsible>
 
 					{/* Main install command */}
 					<div className="min-w-0">
 						<p className="text-sm font-medium mb-2">Install this profile:</p>
-						<CodeBlockCommand command={installCommand} />
+						<CodeBlockCommand command={primaryCommand} />
 					</div>
 
 					{/* Action buttons */}
