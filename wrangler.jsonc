@@ -1,15 +1,23 @@
 {
-	"name": "tweakoc",
-	"compatibility_flags": ["nodejs_compat"],
-	"compatibility_date": "2026-01-28",
-	"main": "./workers/app.ts",
-	"assets": {
-		"directory": "./build/client"
-	},
-	"kv_namespaces": [
-		{
-			"binding": "PROFILES_KV",
-			"id": "96baabfb315f4cc192584345f04341d0"
-		}
-	]
+  "name": "tweakoc",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "compatibility_date": "2026-01-28",
+  "main": "./workers/app.ts",
+  "assets": {
+    "directory": "./build/client"
+  },
+  "observability": {
+    "logs": {
+      "enabled": false,
+      "invocation_logs": true
+    }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "PROFILES_KV",
+      "id": "96baabfb315f4cc192584345f04341d0"
+    }
+  ]
 }
