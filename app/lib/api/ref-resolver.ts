@@ -9,21 +9,18 @@
  *   Result: { "model": "openai/gpt-5" }
  */
 
+import type { HarnessConfig, SlotProperty } from "~/lib/harness-schema";
+import { isConfigurableProperty, isFixedProperty } from "~/lib/harness-schema";
+
 const MAX_DEPTH = 100;
 
 /**
  * Context for resolving $ref pointers.
  */
 export interface ResolverContext {
-	slots: Record<
-		string,
-		{
-			providerId: string;
-			modelId: string;
-			model: string; // "providerId/modelId" combined
-		}
-	>;
+	slots: Record<string, Record<string, unknown>>; // slotId -> propertyName -> value
 	options: Record<string, unknown>;
+	mcp: Record<string, string>; // serverId -> url (for selected MCP servers)
 }
 
 /**
@@ -169,22 +166,88 @@ export function resolveRefs(
 }
 
 /**
- * Build a resolver context from slot and option data.
+ * Resolve a single property value using precedence rules.
+ * 1. Fixed value (if property has 'value' field)
+ * 2. Store override (if provided)
+ * 3. Default (if property has 'default' field)
+ * 4. Error (missing required)
+ */
+function resolvePropertyValue(
+	slotId: string,
+	propertyName: string,
+	property: SlotProperty,
+	storeValue: unknown,
+): unknown {
+	// 1. Fixed value always wins
+	if (isFixedProperty(property)) {
+		return property.value;
+	}
+
+	// 2. Store override
+	if (storeValue !== undefined) {
+		return storeValue;
+	}
+
+	// 3. Default value (for configurable properties)
+	if (
+		isConfigurableProperty(property) &&
+		"default" in property &&
+		property.default !== undefined
+	) {
+		return property.default;
+	}
+
+	// 4. Missing required value
+	// For model type, this is an error
+	// For other types with no default, this is also an error
+	if (property.type === "model") {
+		throw new Error(`Missing required model for slot '${slotId}'`);
+	}
+
+	throw new Error(
+		`Missing required value for slot '${slotId}' property '${propertyName}'`,
+	);
+}
+
+/**
+ * Build a resolver context from harness config and store state.
+ * Applies precedence rules for all slot properties.
  */
 export function buildResolverContext(
-	slots: Record<string, { providerId: string; modelId: string }>,
-	options: Record<string, unknown>,
+	harness: HarnessConfig,
+	storeSlots: Record<string, Record<string, unknown>>,
+	selectedMcpServers: string[],
 ): ResolverContext {
+	const slots: Record<string, Record<string, unknown>> = {};
+
+	// Resolve each slot's properties
+	for (const [slotId, slotDef] of Object.entries(harness.slots)) {
+		const slotStore = storeSlots[slotId] ?? {};
+		const resolvedProps: Record<string, unknown> = {};
+
+		for (const [propName, propDef] of Object.entries(slotDef.properties)) {
+			resolvedProps[propName] = resolvePropertyValue(
+				slotId,
+				propName,
+				propDef,
+				slotStore[propName],
+			);
+		}
+
+		slots[slotId] = resolvedProps;
+	}
+
+	// Build MCP server map (selected servers only)
+	const mcp: Record<string, string> = {};
+	for (const server of harness.mcpServers ?? []) {
+		if (selectedMcpServers.includes(server.id)) {
+			mcp[server.id] = server.url;
+		}
+	}
+
 	return {
-		slots: Object.fromEntries(
-			Object.entries(slots).map(([id, slot]) => [
-				id,
-				{
-					...slot,
-					model: `${slot.providerId}/${slot.modelId}`,
-				},
-			]),
-		),
-		options,
+		slots,
+		options: {}, // Can be extended later for generic options
+		mcp,
 	};
 }

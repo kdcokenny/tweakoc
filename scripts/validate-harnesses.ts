@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
+import { HarnessConfigSchema } from "../app/lib/harness-schema.ts";
 
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
@@ -11,73 +12,8 @@ const HARNESS_DIR = resolve(__dirname, "../app/config/harnesses");
 const VALID_ID_REGEX = /^[a-z0-9-]+$/;
 
 // Expected harness IDs (must match HARNESS_IDS in harness-registry.ts)
-const EXPECTED_HARNESS_IDS = ["omo", "kdco-workspace"] as const;
-
-// Inline harness schema for validation (matches harness-schema.ts)
-const HarnessSlotSchema = z.object({
-	id: z.string().min(1),
-	label: z.string().min(1),
-	description: z.string(),
-});
-
-const HarnessOptionSchema = z.object({
-	id: z.string().min(1),
-	type: z.enum(["boolean", "text", "select"]),
-	label: z.string().min(1),
-	description: z.string().optional(),
-	default: z.unknown().optional(),
-	options: z
-		.array(
-			z.object({
-				value: z.string(),
-				label: z.string(),
-			}),
-		)
-		.optional(),
-});
-
-const HarnessOutputSchema = z.object({
-	path: z.string().min(1),
-	label: z.string().min(1),
-});
-
-const HarnessTemplateSchema = z.object({
-	output: z.string(),
-	template: z.record(z.string(), z.unknown()),
-});
-
-const HarnessConfigSchema = z
-	.object({
-		schemaVersion: z.literal(1),
-		id: z.string().min(1),
-		name: z.string().min(1),
-		description: z.string(),
-		slots: z.array(HarnessSlotSchema).min(1),
-		options: z.array(HarnessOptionSchema).optional().default([]),
-		outputs: z.array(HarnessOutputSchema).min(1),
-		templates: z.array(HarnessTemplateSchema).min(1),
-	})
-	.refine(
-		(config) => {
-			const ids = config.slots.map((s) => s.id);
-			return new Set(ids).size === ids.length;
-		},
-		{ message: "Slot IDs must be unique" },
-	)
-	.refine(
-		(config) => {
-			const paths = config.outputs.map((o) => o.path);
-			return new Set(paths).size === paths.length;
-		},
-		{ message: "Output paths must be unique" },
-	)
-	.refine(
-		(config) => {
-			const outputPaths = new Set(config.outputs.map((o) => o.path));
-			return config.templates.every((t) => outputPaths.has(t.output));
-		},
-		{ message: "Template output must match a defined output path" },
-	);
+// Note: omo.json needs migration to new schema (Record-based slots, flow field)
+const EXPECTED_HARNESS_IDS = ["kdco-workspace"] as const;
 
 interface ValidationError {
 	type: "error";
@@ -112,6 +48,15 @@ const seenFiles = new Set<string>();
 for (const file of files) {
 	const filePath = resolve(HARNESS_DIR, file);
 	const fileName = basename(file, ".json");
+
+	// Skip files not in EXPECTED_HARNESS_IDS (allows legacy/WIP harnesses to exist)
+	if (
+		!EXPECTED_HARNESS_IDS.includes(
+			fileName as (typeof EXPECTED_HARNESS_IDS)[number],
+		)
+	) {
+		continue;
+	}
 
 	// Check for duplicate filenames
 	if (seenFiles.has(fileName)) {

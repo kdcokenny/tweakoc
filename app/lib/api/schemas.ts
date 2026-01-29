@@ -25,20 +25,13 @@ const safeString = (maxLength: number) =>
 			message: "Value appears to contain a credential pattern",
 		});
 
-// Model slot schema
-const modelSlotSchema = z
-	.object({
-		providerId: safeString(64),
-		modelId: safeString(128),
-	})
-	.strict();
-
 // Base profile request schema (without harness-specific validation)
 export const createProfileRequestSchema = z
 	.object({
 		harnessId: z.string().min(1),
 		providers: z.array(safeString(64)).min(1).max(20),
-		slots: z.record(z.string(), modelSlotSchema),
+		slots: z.record(z.string(), z.record(z.string(), z.unknown())),
+		selectedMcpServers: z.array(z.string()).optional().default([]),
 		options: z.record(z.string(), z.unknown()).optional(),
 	})
 	.strict();
@@ -61,18 +54,19 @@ export function validateProfileRequest(
 	}
 
 	// Validate all required slots are present
-	for (const slotConfig of harness.slots) {
-		const slot = request.slots[slotConfig.id];
+	const harnessSlotIds = Object.keys(harness.slots);
+	for (const slotId of harnessSlotIds) {
+		const slot = request.slots[slotId];
 		if (!slot) {
 			return {
 				valid: false,
-				error: `Missing required slot: "${slotConfig.id}"`,
+				error: `Missing required slot: "${slotId}"`,
 			};
 		}
 	}
 
 	// Validate no extra slots
-	const validSlotIds = new Set(harness.slots.map((s) => s.id));
+	const validSlotIds = new Set(harnessSlotIds);
 	for (const slotId of Object.keys(request.slots)) {
 		if (!validSlotIds.has(slotId)) {
 			return { valid: false, error: `Unknown slot: "${slotId}"` };

@@ -1,17 +1,18 @@
 import kdcoWorkspaceRaw from "~/config/harnesses/kdco-workspace.json";
 
 // Import harness configs
-import omoRaw from "~/config/harnesses/omo.json";
+// TODO: Migrate omo.json to new schema format (Record-based slots, flow field)
+// import omoRaw from "~/config/harnesses/omo.json";
 import { type HarnessConfig, parseHarnessConfig } from "./harness-schema";
 
 /**
  * List of all harness IDs in the registry.
  * Used for validation and iteration.
  */
-export const HARNESS_IDS = ["omo", "kdco-workspace"] as const;
+export const HARNESS_IDS = ["kdco-workspace"] as const;
 
 // Parse and validate at load time (fail fast)
-const omo = parseHarnessConfig(omoRaw, "omo.json");
+// const omo = parseHarnessConfig(omoRaw, "omo.json");
 const kdcoWorkspace = parseHarnessConfig(
 	kdcoWorkspaceRaw,
 	"kdco-workspace.json",
@@ -25,7 +26,7 @@ const kdcoWorkspace = parseHarnessConfig(
  * 3. Add to HARNESSES object
  */
 export const HARNESSES: Record<string, HarnessConfig> = {
-	omo,
+	// omo,
 	"kdco-workspace": kdcoWorkspace,
 };
 

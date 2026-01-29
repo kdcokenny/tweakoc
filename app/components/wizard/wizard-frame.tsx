@@ -12,6 +12,7 @@ interface WizardFrameProps {
 	canGoNext: boolean;
 	canGoBack: boolean;
 	direction: "forward" | "back";
+	showStepIndicator?: boolean;
 }
 
 export function WizardFrame({
@@ -24,10 +25,15 @@ export function WizardFrame({
 	canGoNext,
 	canGoBack,
 	direction,
+	showStepIndicator = true,
 }: WizardFrameProps) {
 	return (
 		<div className="flex h-dvh flex-col bg-background">
-			<WizardHeader currentStep={currentStep} totalSteps={totalSteps} />
+			<WizardHeader
+				currentStep={currentStep}
+				totalSteps={totalSteps}
+				showStepIndicator={showStepIndicator}
+			/>
 
 			<WizardContent direction={direction}>{children}</WizardContent>
 

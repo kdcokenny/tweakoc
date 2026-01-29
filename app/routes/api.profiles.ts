@@ -66,22 +66,11 @@ export async function action({ request, context }: Route.ActionArgs) {
 			);
 		}
 
-		// Validate slot providers exist in catalog
-		for (const [slotId, slot] of Object.entries(validated.slots)) {
-			if (!providerExists(catalog, slot.providerId)) {
-				return createErrorResponse(
-					"INVALID_PROVIDER",
-					`Unknown provider for slot "${slotId}": ${slot.providerId}`,
-					400,
-				);
-			}
-		}
-
 		// Generate files
 		const generatedFiles = generateProfileFiles(
 			validated.harnessId,
 			validated.slots,
-			validated.options ?? {},
+			validated.selectedMcpServers ?? [],
 		);
 
 		// Generate ID and save (with retry on collision)

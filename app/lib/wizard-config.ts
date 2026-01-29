@@ -19,7 +19,7 @@ export interface WizardStep {
 
 /**
  * Generate wizard steps based on harness configuration.
- * Steps are: harness → providers → [slot steps] → [options if any] → review
+ * Steps are: harness → providers → [flow pages] → review
  */
 export function getWizardSteps(harnessId: string | undefined): WizardStep[] {
 	if (!harnessId) {
@@ -33,22 +33,12 @@ export function getWizardSteps(harnessId: string | undefined): WizardStep[] {
 
 	const steps: WizardStep[] = [...BASE_STEPS_START];
 
-	// Add slot steps
-	for (const slot of harness.slots) {
+	// Add flow pages from harness configuration
+	for (const page of harness.flow) {
 		steps.push({
-			id: `slot-${slot.id}`,
-			path: `/flow/slot/${slot.id}`,
-			label: slot.label,
-			slotId: slot.id,
-		});
-	}
-
-	// Add options step if harness has options
-	if (harness.options && harness.options.length > 0) {
-		steps.push({
-			id: "options",
-			path: "/flow/options",
-			label: "Options",
+			id: `page-${page.id}`,
+			path: `/flow/page/${page.id}`,
+			label: page.label,
 		});
 	}
 
@@ -95,7 +85,12 @@ export function getStepFromPath(
 	steps: WizardStep[],
 	path: string,
 ): WizardStep | undefined {
-	// Handle slot paths: /flow/slot/visual-engineering → slot-visual-engineering
+	// Handle flow page paths: /flow/page/configure → page-configure
+	if (path.startsWith("/flow/page/")) {
+		const pageId = path.replace("/flow/page/", "");
+		return steps.find((s) => s.id === `page-${pageId}`);
+	}
+	// Handle slot paths (legacy): /flow/slot/visual-engineering → slot-visual-engineering
 	if (path.startsWith("/flow/slot/")) {
 		const slotId = path.replace("/flow/slot/", "");
 		return steps.find((s) => s.slotId === slotId);

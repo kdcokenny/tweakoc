@@ -13,6 +13,7 @@ import {
 	selectHarnessId,
 	selectOptions,
 	selectProviders,
+	selectSelectedMcpServers,
 	useWizardStore,
 } from "~/lib/store/wizard-store";
 
@@ -27,6 +28,7 @@ export default function ReviewStep() {
 	const providers = useWizardStore(selectProviders);
 	const slots = useWizardStore(selectAllSlots);
 	const options = useWizardStore(selectOptions);
+	const selectedMcpServers = useWizardStore(selectSelectedMcpServers);
 	const providersById = useWizardStore((s) => s.catalog.providersById);
 	const setReviewStepHandler = useWizardStore((s) => s.setReviewStepHandler);
 	const setReviewStepCreating = useWizardStore((s) => s.setReviewStepCreating);
@@ -47,34 +49,19 @@ export default function ReviewStep() {
 
 		if (!harnessId) return;
 
-		// Validate all slots are complete
-		const allSlotsComplete = Object.values(slots).every(
-			(slot) => slot.providerId && slot.modelId,
-		);
+		// Validate all slots are complete (have model property)
+		const allSlotsComplete = Object.values(slots).every((slot) => slot.model);
 		if (!allSlotsComplete) return;
 
 		setReviewStepCreating(true);
 		setCreateError(null);
 
 		try {
-			// Build slots for API request
-			const slotsForRequest: Record<
-				string,
-				{ providerId: string; modelId: string }
-			> = {};
-			for (const [slotId, slot] of Object.entries(slots)) {
-				if (slot.providerId && slot.modelId) {
-					slotsForRequest[slotId] = {
-						providerId: slot.providerId,
-						modelId: slot.modelId,
-					};
-				}
-			}
-
 			const result = await createProfile({
 				harnessId,
 				providers,
-				slots: slotsForRequest,
+				slots, // Send slots as-is (generic properties)
+				selectedMcpServers,
 				options,
 			});
 
@@ -93,6 +80,7 @@ export default function ReviewStep() {
 		harnessId,
 		providers,
 		slots,
+		selectedMcpServers,
 		options,
 		setReviewStepCreating,
 	]);
@@ -131,21 +119,29 @@ export default function ReviewStep() {
 				</Card>
 
 				{/* Dynamic Slots */}
-				{harness?.slots.map((slotConfig) => {
-					const slot = slots[slotConfig.id];
-					return (
-						<Card key={slotConfig.id} className="p-4">
-							<div className="flex items-center justify-between">
-								<span className="text-sm font-medium">{slotConfig.label}</span>
-								<span className="text-sm">
-									{providersById[slot?.providerId ?? ""]?.name ??
-										slot?.providerId}
-									/{slot?.modelId}
-								</span>
-							</div>
-						</Card>
-					);
-				})}
+				{harness &&
+					Object.entries(harness.slots).map(([slotId, slotConfig]) => {
+						const slot = slots[slotId];
+						// Parse model property (format: "providerId/modelId" where modelId may contain slashes)
+						const modelValue = slot?.model as string | undefined;
+						const modelParts = modelValue?.split("/") ?? [];
+						const providerId = modelParts[0];
+						const modelId = modelParts.slice(1).join("/");
+
+						return (
+							<Card key={slotId} className="p-4">
+								<div className="flex items-center justify-between">
+									<span className="text-sm font-medium">
+										{slotConfig.label}
+									</span>
+									<span className="text-sm">
+										{providersById[providerId ?? ""]?.name ?? providerId}/
+										{modelId}
+									</span>
+								</div>
+							</Card>
+						);
+					})}
 
 				{/* Options (if any) */}
 				{enabledOptions.length > 0 && (
@@ -170,7 +166,10 @@ export default function ReviewStep() {
 				const usedProviderIds = [
 					...new Set(
 						Object.values(slots)
-							.map((slot) => slot.providerId)
+							.map((slot) => {
+								const modelValue = slot?.model as string | undefined;
+								return modelValue ? modelValue.split("/")[0] : undefined;
+							})
 							.filter((id): id is string => Boolean(id)),
 					),
 				];

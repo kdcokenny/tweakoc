@@ -99,6 +99,9 @@ export default function RootLayout() {
 				? !reviewStepCreating
 				: true;
 
+	// Show step indicator only if we're not on the first page OR if harness is selected
+	const showStepIndicator = currentStepIndex > 0 || !!harnessId;
+
 	return (
 		<WizardFrame
 			currentStep={currentStepIndex + 1}
@@ -109,6 +112,7 @@ export default function RootLayout() {
 			canGoNext={canGoNext}
 			canGoBack={canGoBack}
 			direction={direction}
+			showStepIndicator={showStepIndicator}
 		>
 			<Outlet />
 		</WizardFrame>

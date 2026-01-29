@@ -4,38 +4,242 @@
 	"name": "KDCO Workspace",
 	"description": "Full-featured development environment with specialized agents",
 
-	"slots": [
-		{
-			"id": "orchestrator",
+	"slots": {
+		"orchestrator": {
 			"label": "Orchestrator",
-			"description": "Main planning and task delegation"
+			"description": "Main planning and task delegation",
+			"properties": {
+				"model": { "type": "model", "configurable": true },
+				"temperature": {
+					"type": "number",
+					"configurable": true,
+					"default": 0.3,
+					"min": 0,
+					"max": 2,
+					"step": 0.1
+				},
+				"reasoningEffort": {
+					"type": "enum",
+					"configurable": true,
+					"default": "high",
+					"options": ["low", "medium", "high"]
+				},
+				"textVerbosity": {
+					"type": "enum",
+					"configurable": true,
+					"default": "low",
+					"options": ["low", "medium", "high"]
+				}
+			},
+			"advancedGroup": {
+				"label": "Advanced",
+				"collapsible": true,
+				"collapsed": true,
+				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
+			}
 		},
-		{
-			"id": "coder",
+		"coder": {
 			"label": "Coder",
-			"description": "Code generation and modification"
+			"description": "Code generation and modification",
+			"properties": {
+				"model": { "type": "model", "configurable": true },
+				"temperature": {
+					"type": "number",
+					"configurable": true,
+					"default": 0.2,
+					"min": 0,
+					"max": 2,
+					"step": 0.1
+				},
+				"reasoningEffort": {
+					"type": "enum",
+					"configurable": true,
+					"default": "high",
+					"options": ["low", "medium", "high"]
+				},
+				"textVerbosity": {
+					"type": "enum",
+					"configurable": true,
+					"default": "low",
+					"options": ["low", "medium", "high"]
+				}
+			},
+			"advancedGroup": {
+				"label": "Advanced",
+				"collapsible": true,
+				"collapsed": true,
+				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
+			}
 		},
-		{
-			"id": "researcher",
+		"explorer": {
+			"label": "Explorer",
+			"description": "Codebase exploration and navigation",
+			"properties": {
+				"model": { "type": "model", "configurable": true },
+				"temperature": {
+					"type": "number",
+					"configurable": true,
+					"default": 0.2,
+					"min": 0,
+					"max": 2,
+					"step": 0.1
+				},
+				"reasoningEffort": {
+					"type": "enum",
+					"configurable": true,
+					"default": "low",
+					"options": ["low", "medium", "high"]
+				},
+				"textVerbosity": {
+					"type": "enum",
+					"configurable": true,
+					"default": "low",
+					"options": ["low", "medium", "high"]
+				}
+			},
+			"advancedGroup": {
+				"label": "Advanced",
+				"collapsible": true,
+				"collapsed": true,
+				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
+			}
+		},
+		"researcher": {
 			"label": "Researcher",
-			"description": "Research, analysis, and documentation lookup"
+			"description": "Research, analysis, and documentation lookup",
+			"properties": {
+				"model": { "type": "model", "configurable": true },
+				"temperature": {
+					"type": "number",
+					"configurable": true,
+					"default": 0.4,
+					"min": 0,
+					"max": 2,
+					"step": 0.1
+				},
+				"reasoningEffort": {
+					"type": "enum",
+					"configurable": true,
+					"default": "high",
+					"options": ["low", "medium", "high"]
+				},
+				"textVerbosity": {
+					"type": "enum",
+					"configurable": true,
+					"default": "medium",
+					"options": ["low", "medium", "high"]
+				}
+			},
+			"advancedGroup": {
+				"label": "Advanced",
+				"collapsible": true,
+				"collapsed": true,
+				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
+			}
+		},
+		"scribe": {
+			"label": "Scribe",
+			"description": "Documentation and content writing",
+			"properties": {
+				"model": { "type": "model", "configurable": true },
+				"temperature": {
+					"type": "number",
+					"configurable": true,
+					"default": 1.0,
+					"min": 0,
+					"max": 2,
+					"step": 0.1
+				},
+				"reasoningEffort": {
+					"type": "enum",
+					"configurable": true,
+					"default": "low",
+					"options": ["low", "medium", "high"]
+				},
+				"textVerbosity": {
+					"type": "enum",
+					"configurable": true,
+					"default": "high",
+					"options": ["low", "medium", "high"]
+				}
+			},
+			"advancedGroup": {
+				"label": "Advanced",
+				"collapsible": true,
+				"collapsed": true,
+				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
+			}
+		},
+		"reviewer": {
+			"label": "Reviewer",
+			"description": "Code review and quality assurance",
+			"properties": {
+				"model": { "type": "model", "configurable": true },
+				"temperature": {
+					"type": "number",
+					"configurable": true,
+					"default": 0.1,
+					"min": 0,
+					"max": 2,
+					"step": 0.1
+				},
+				"reasoningEffort": {
+					"type": "enum",
+					"configurable": true,
+					"default": "high",
+					"options": ["low", "medium", "high"]
+				},
+				"textVerbosity": {
+					"type": "enum",
+					"configurable": true,
+					"default": "medium",
+					"options": ["low", "medium", "high"]
+				}
+			},
+			"advancedGroup": {
+				"label": "Advanced",
+				"collapsible": true,
+				"collapsed": true,
+				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
+			}
 		}
-	],
+	},
 
-	"options": [
+	"mcpServers": [
 		{
 			"id": "context7",
-			"type": "boolean",
-			"label": "Context7 MCP",
-			"description": "Enable Context7 documentation lookup",
-			"default": false
+			"label": "Context7",
+			"url": "https://mcp.context7.com/mcp"
+		},
+		{ "id": "exa", "label": "Exa", "url": "https://mcp.exa.ai/mcp" },
+		{ "id": "gh_grep", "label": "GitHub Grep", "url": "https://mcp.grep.app" }
+	],
+
+	"flow": [
+		{
+			"id": "orchestration",
+			"label": "Orchestration",
+			"components": [
+				{ "type": "slot", "id": "orchestrator" },
+				{ "type": "slot", "id": "coder" }
+			]
 		},
 		{
-			"id": "renameWindow",
-			"type": "boolean",
-			"label": "Rename Terminal Window",
-			"description": "Automatically rename terminal window to project name",
-			"default": true
+			"id": "exploration",
+			"label": "Exploration & Research",
+			"components": [
+				{ "type": "slot", "id": "explorer" },
+				{ "type": "slot", "id": "researcher" }
+			]
+		},
+		{
+			"id": "content",
+			"label": "Content & Review",
+			"components": [
+				{ "type": "slot", "id": "scribe" },
+				{ "type": "slot", "id": "reviewer" },
+				{ "type": "mcp" }
+			]
 		}
 	],
 
@@ -50,7 +254,56 @@
 			"template": {
 				"$schema": "https://opencode.ai/config.json",
 				"model": { "$ref": "#/slots/orchestrator/model" },
-				"small_model": { "$ref": "#/slots/coder/model" }
+				"small_model": { "$ref": "#/slots/explorer/model" },
+				"agent": {
+					"plan": {
+						"model": { "$ref": "#/slots/orchestrator/model" },
+						"temperature": { "$ref": "#/slots/orchestrator/temperature" },
+						"reasoningEffort": {
+							"$ref": "#/slots/orchestrator/reasoningEffort"
+						},
+						"textVerbosity": { "$ref": "#/slots/orchestrator/textVerbosity" }
+					},
+					"build": {
+						"model": { "$ref": "#/slots/orchestrator/model" },
+						"temperature": { "$ref": "#/slots/orchestrator/temperature" },
+						"reasoningEffort": {
+							"$ref": "#/slots/orchestrator/reasoningEffort"
+						},
+						"textVerbosity": { "$ref": "#/slots/orchestrator/textVerbosity" }
+					},
+					"coder": {
+						"model": { "$ref": "#/slots/coder/model" },
+						"temperature": { "$ref": "#/slots/coder/temperature" },
+						"reasoningEffort": { "$ref": "#/slots/coder/reasoningEffort" },
+						"textVerbosity": { "$ref": "#/slots/coder/textVerbosity" }
+					},
+					"explore": {
+						"model": { "$ref": "#/slots/explorer/model" },
+						"temperature": { "$ref": "#/slots/explorer/temperature" },
+						"reasoningEffort": { "$ref": "#/slots/explorer/reasoningEffort" },
+						"textVerbosity": { "$ref": "#/slots/explorer/textVerbosity" }
+					},
+					"researcher": {
+						"model": { "$ref": "#/slots/researcher/model" },
+						"temperature": { "$ref": "#/slots/researcher/temperature" },
+						"reasoningEffort": { "$ref": "#/slots/researcher/reasoningEffort" },
+						"textVerbosity": { "$ref": "#/slots/researcher/textVerbosity" }
+					},
+					"scribe": {
+						"model": { "$ref": "#/slots/scribe/model" },
+						"temperature": { "$ref": "#/slots/scribe/temperature" },
+						"reasoningEffort": { "$ref": "#/slots/scribe/reasoningEffort" },
+						"textVerbosity": { "$ref": "#/slots/scribe/textVerbosity" }
+					},
+					"reviewer": {
+						"model": { "$ref": "#/slots/reviewer/model" },
+						"temperature": { "$ref": "#/slots/reviewer/temperature" },
+						"reasoningEffort": { "$ref": "#/slots/reviewer/reasoningEffort" },
+						"textVerbosity": { "$ref": "#/slots/reviewer/textVerbosity" }
+					}
+				},
+				"mcp": { "$ref": "#/mcp" }
 			}
 		},
 		{
@@ -58,7 +311,6 @@
 			"template": {
 				"$schema": "https://ocx.kdco.dev/schemas/profile.json",
 				"registries": {},
-				"renameWindow": { "$ref": "#/options/renameWindow" },
 				"exclude": ["**/CLAUDE.md", "**/CONTEXT.md", "**/.opencode/**"]
 			}
 		}

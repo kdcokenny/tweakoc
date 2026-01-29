@@ -14,8 +14,9 @@ interface WizardState {
 	// Selections
 	harnessId?: string;
 	providers: string[]; // insertion order maintained
-	slots: Record<string, { providerId?: string; modelId?: string }>;
+	slots: Record<string, Record<string, unknown>>;
 	options: Record<string, unknown>;
+	selectedMcpServers: string[]; // IDs of selected MCP servers (all selected by default)
 
 	// Backtracking
 	returnToStep?: string;
@@ -45,10 +46,23 @@ interface WizardActions {
 	// Set slot model (dynamic slot ID)
 	setSlotModel: (slotId: string, modelId: string | undefined) => void;
 
+	// Set any property on a slot
+	setSlotProperty: (
+		slotId: string,
+		propertyName: string,
+		value: unknown,
+	) => void;
+
 	// Clear a specific slot
 	clearSlot: (slotId: string) => void;
 
 	setOption: (key: string, value: unknown) => void;
+
+	// MCP actions
+	setSelectedMcpServers: (serverIds: string[]) => void;
+	toggleMcpServer: (serverId: string) => void;
+	selectAllMcpServers: () => void;
+	deselectAllMcpServers: () => void;
 
 	// Backtracking
 	setReturnToStep: (step?: string) => void;
@@ -77,6 +91,7 @@ const initialState: WizardState = {
 	providers: [],
 	slots: {},
 	options: {},
+	selectedMcpServers: [],
 	catalog: {
 		providersById: {},
 		providersOrder: [],
@@ -98,6 +113,7 @@ export const useWizardStore = create<WizardState & WizardActions>(
 				providers: [],
 				slots: {},
 				options: {},
+				selectedMcpServers: [],
 				returnToStep: undefined,
 				banner: undefined,
 			});
@@ -112,14 +128,19 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			const harness = getHarness(harnessId);
 			if (!harness) return;
 
-			// Create empty slot for each harness slot
-			const slots: Record<string, { providerId?: string; modelId?: string }> =
-				{};
-			for (const slot of harness.slots) {
-				slots[slot.id] = { providerId: undefined, modelId: undefined };
+			// Initialize empty slots for each harness slot
+			const slots: Record<string, Record<string, unknown>> = {};
+			for (const slotId of Object.keys(harness.slots)) {
+				slots[slotId] = {};
 			}
 
-			set({ slots });
+			// Initialize MCP servers (all selected by default)
+			const mcpServerIds = harness.mcpServers?.map((s) => s.id) ?? [];
+
+			set({
+				slots,
+				selectedMcpServers: mcpServerIds,
+			});
 		},
 
 		toggleProvider: (id) => {
@@ -142,20 +163,41 @@ export const useWizardStore = create<WizardState & WizardActions>(
 					...state.slots,
 					[slotId]: {
 						...state.slots[slotId],
-						providerId,
-						modelId: undefined, // Clear model when provider changes
+						model: undefined, // Clear model property when provider changes
+						_providerId: providerId, // Store provider for model picker
 					},
 				},
 			}));
 		},
 
 		setSlotModel: (slotId, modelId) => {
+			set((state) => {
+				const slot = state.slots[slotId] || {};
+				const providerId = slot._providerId as string | undefined;
+
+				// Store as "providerId/modelId" format for the model property
+				const modelValue =
+					providerId && modelId ? `${providerId}/${modelId}` : undefined;
+
+				return {
+					slots: {
+						...state.slots,
+						[slotId]: {
+							...state.slots[slotId],
+							model: modelValue,
+						},
+					},
+				};
+			});
+		},
+
+		setSlotProperty: (slotId, propertyName, value) => {
 			set((state) => ({
 				slots: {
 					...state.slots,
 					[slotId]: {
 						...state.slots[slotId],
-						modelId,
+						[propertyName]: value,
 					},
 				},
 			}));
@@ -165,7 +207,7 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			set((state) => ({
 				slots: {
 					...state.slots,
-					[slotId]: { providerId: undefined, modelId: undefined },
+					[slotId]: {}, // Clear all properties
 				},
 			}));
 		},
@@ -174,6 +216,35 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			set((state) => ({
 				options: { ...state.options, [key]: value },
 			}));
+		},
+
+		setSelectedMcpServers: (serverIds) => {
+			set({ selectedMcpServers: serverIds });
+		},
+
+		toggleMcpServer: (serverId) => {
+			set((state) => {
+				const isSelected = state.selectedMcpServers.includes(serverId);
+				return {
+					selectedMcpServers: isSelected
+						? state.selectedMcpServers.filter((id) => id !== serverId)
+						: [...state.selectedMcpServers, serverId],
+				};
+			});
+		},
+
+		selectAllMcpServers: () => {
+			const { harnessId } = get();
+			if (!harnessId) return;
+
+			const harness = getHarness(harnessId);
+			if (!harness) return;
+
+			set({ selectedMcpServers: harness.mcpServers?.map((s) => s.id) ?? [] });
+		},
+
+		deselectAllMcpServers: () => {
+			set({ selectedMcpServers: [] });
 		},
 
 		setReturnToStep: (step) => {
@@ -195,8 +266,9 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			// Clear slots that reference removed providers
 			const updatedSlots = { ...slots };
 			for (const [slotId, slot] of Object.entries(updatedSlots)) {
-				if (slot.providerId && removed.includes(slot.providerId)) {
-					updatedSlots[slotId] = { providerId: undefined, modelId: undefined };
+				const providerId = slot._providerId as string | undefined;
+				if (providerId && removed.includes(providerId)) {
+					updatedSlots[slotId] = {}; // Clear the slot
 				}
 			}
 
@@ -276,6 +348,7 @@ export const useWizardStore = create<WizardState & WizardActions>(
 				providers: [],
 				slots: {},
 				options: {},
+				selectedMcpServers: [],
 				returnToStep: undefined,
 				banner: undefined,
 				// Note: catalog is NOT reset - it's cached data
@@ -299,11 +372,11 @@ export const selectSlot = (slotId: string) => (state: WizardState) =>
 // Select all slots
 export const selectAllSlots = (state: WizardState) => state.slots;
 
-// Check if a slot is complete (has both provider and model)
+// Check if a slot is complete (has model property)
 export const selectIsSlotComplete =
 	(slotId: string) => (state: WizardState) => {
 		const slot = state.slots[slotId];
-		return Boolean(slot?.providerId && slot?.modelId);
+		return Boolean(slot?.model); // Check model property exists
 	};
 
 // Check if all slots are complete
@@ -314,9 +387,10 @@ export const selectAreAllSlotsComplete = (state: WizardState) => {
 	const harness = getHarness(harnessId);
 	if (!harness) return false;
 
-	return harness.slots.every((slot) => {
-		const slotData = state.slots[slot.id];
-		return slotData?.providerId && slotData?.modelId;
+	// Check each slot has its model property set
+	return Object.keys(harness.slots).every((slotId) => {
+		const slotData = state.slots[slotId];
+		return Boolean(slotData?.model);
 	});
 };
 
@@ -341,3 +415,15 @@ export const selectCatalogProvidersById = (
 export const selectProviderById =
 	(id: string) => (state: WizardState & WizardActions) =>
 		state.catalog.providersById[id];
+
+// MCP selectors
+export const selectSelectedMcpServers = (state: WizardState) =>
+	state.selectedMcpServers;
+export const selectIsMcpServerSelected =
+	(serverId: string) => (state: WizardState) =>
+		state.selectedMcpServers.includes(serverId);
+
+// Get a specific slot property value
+export const selectSlotProperty =
+	(slotId: string, propertyName: string) => (state: WizardState) =>
+		state.slots[slotId]?.[propertyName];

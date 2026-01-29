@@ -41,8 +41,17 @@ export function ModelSlot({ slotId }: ModelSlotProps) {
 		void ensureProvidersLoaded();
 	}, [ensureProvidersLoaded]);
 
+	// Extract providerId and modelId from slot data
+	const internalProviderId = slotData?._providerId as string | undefined;
+	const modelValue =
+		typeof slotData?.model === "string" ? slotData.model : undefined;
+	const parsedModelId = modelValue
+		? modelValue.split("/").slice(1).join("/")
+		: undefined;
+	const modelId = parsedModelId || undefined; // Normalize empty string to undefined
+
 	// Current provider (defaults to first selected if not set)
-	const currentProviderId = slotData.providerId ?? defaultProvider;
+	const currentProviderId = internalProviderId ?? defaultProvider;
 
 	// Map selected providers - keep unknown ones visible with warning!
 	interface UIProvider extends ProviderSummary {
@@ -75,12 +84,12 @@ export function ModelSlot({ slotId }: ModelSlotProps) {
 		}
 	};
 
-	const handleModelChange = (modelId: string) => {
+	const handleModelChange = (newModelId: string) => {
 		// Ensure provider is set before model
-		if (!slotData.providerId && currentProviderId) {
+		if (!internalProviderId && currentProviderId) {
 			setSlotProvider(slotId, currentProviderId);
 		}
-		setSlotModel(slotId, modelId);
+		setSlotModel(slotId, newModelId);
 	};
 
 	const handleEditProviders = () => {
@@ -167,7 +176,7 @@ export function ModelSlot({ slotId }: ModelSlotProps) {
 				{currentProviderId ? (
 					<ModelPicker
 						providerId={currentProviderId}
-						value={slotData.modelId}
+						value={modelId}
 						onChange={handleModelChange}
 						onClear={() => setSlotModel(slotId, undefined)}
 						loader={modelLoader}

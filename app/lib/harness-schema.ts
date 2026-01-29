@@ -1,34 +1,226 @@
 import { z } from "zod";
 
-// Slot definition
-export const HarnessSlotSchema = z.object({
-	id: z.string().min(1),
-	label: z.string().min(1),
-	description: z.string(),
+// ============================================================================
+// Slot Property Schemas (Discriminated Union)
+// ============================================================================
+
+// Fixed variants (harness dev sets value, user never sees)
+const FixedNumberSchema = z.object({
+	type: z.literal("number"),
+	value: z.number(),
 });
+
+const FixedTextSchema = z.object({
+	type: z.literal("text"),
+	value: z.string(),
+});
+
+const FixedEnumSchema = z
+	.object({
+		type: z.literal("enum"),
+		value: z.string(),
+		options: z.array(z.string()).min(1),
+	})
+	.refine((data) => data.options.includes(data.value), {
+		message: "Fixed enum value must be in options",
+	});
+
+const FixedBooleanSchema = z.object({
+	type: z.literal("boolean"),
+	value: z.boolean(),
+});
+
+// Configurable variants (user can change)
+const ConfigurableModelSchema = z.object({
+	type: z.literal("model"),
+	configurable: z.literal(true),
+});
+
+const ConfigurableNumberSchema = z
+	.object({
+		type: z.literal("number"),
+		configurable: z.literal(true),
+		default: z.number().optional(),
+		min: z.number().optional(),
+		max: z.number().optional(),
+		step: z.number().positive().optional(),
+	})
+	.refine(
+		(data) => {
+			if (data.min !== undefined && data.max !== undefined) {
+				return data.min <= data.max;
+			}
+			return true;
+		},
+		{ message: "min must be <= max" },
+	)
+	.refine(
+		(data) => {
+			if (data.default !== undefined) {
+				if (data.min !== undefined && data.default < data.min) return false;
+				if (data.max !== undefined && data.default > data.max) return false;
+			}
+			return true;
+		},
+		{ message: "default must be within min/max range" },
+	);
+
+const ConfigurableTextSchema = z.object({
+	type: z.literal("text"),
+	configurable: z.literal(true),
+	default: z.string().optional(),
+});
+
+const ConfigurableEnumSchema = z
+	.object({
+		type: z.literal("enum"),
+		configurable: z.literal(true),
+		options: z.array(z.string()).min(1),
+		default: z.string().optional(),
+	})
+	.refine(
+		(data) => {
+			if (data.default !== undefined) {
+				return data.options.includes(data.default);
+			}
+			return true;
+		},
+		{ message: "default must be in options" },
+	);
+
+const ConfigurableBooleanSchema = z.object({
+	type: z.literal("boolean"),
+	configurable: z.literal(true),
+	default: z.boolean().optional(),
+});
+
+// Union all property types
+export const SlotPropertySchema = z.union([
+	FixedNumberSchema,
+	FixedTextSchema,
+	FixedEnumSchema,
+	FixedBooleanSchema,
+	ConfigurableModelSchema,
+	ConfigurableNumberSchema,
+	ConfigurableTextSchema,
+	ConfigurableEnumSchema,
+	ConfigurableBooleanSchema,
+]);
+
+export type SlotProperty = z.infer<typeof SlotPropertySchema>;
+
+// ============================================================================
+// Advanced Group Schema
+// ============================================================================
+
+export const AdvancedGroupSchema = z
+	.object({
+		label: z.string().min(1).default("Advanced"),
+		collapsible: z.boolean().default(true),
+		collapsed: z.boolean().default(true),
+		properties: z.array(z.string().min(1)).min(1),
+	})
+	.superRefine((group, ctx) => {
+		if (group.collapsed && !group.collapsible) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message:
+					"advancedGroup.collapsed requires advancedGroup.collapsible = true",
+			});
+		}
+	});
+
+export type AdvancedGroup = z.infer<typeof AdvancedGroupSchema>;
+
+// ============================================================================
+// Slot Definition
+// ============================================================================
+
+export const HarnessSlotSchema = z
+	.object({
+		label: z.string().min(1),
+		description: z.string(),
+		properties: z.record(z.string(), SlotPropertySchema),
+		advancedGroup: AdvancedGroupSchema.optional(),
+	})
+	.superRefine((slot, ctx) => {
+		const group = slot.advancedGroup;
+		if (!group) return;
+
+		const propKeys = new Set(Object.keys(slot.properties));
+		const seen = new Set<string>();
+
+		for (const name of group.properties) {
+			// Check for duplicates
+			if (seen.has(name)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: `advancedGroup property duplicated: ${name}`,
+				});
+				continue;
+			}
+			seen.add(name);
+
+			// Check property exists
+			if (!propKeys.has(name)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: `advancedGroup references unknown property: ${name}`,
+				});
+			}
+
+			// Prevent model in advancedGroup
+			if (name === "model") {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "advancedGroup cannot include 'model'",
+				});
+			}
+		}
+	});
 
 export type HarnessSlot = z.infer<typeof HarnessSlotSchema>;
 
-// Option definition
-export const HarnessOptionSchema = z.object({
+// ============================================================================
+// MCP Server Schema
+// ============================================================================
+
+export const McpServerSchema = z.object({
 	id: z.string().min(1),
-	type: z.enum(["boolean", "text", "select"]),
 	label: z.string().min(1),
-	description: z.string().optional(),
-	default: z.unknown().optional(),
-	options: z
-		.array(
-			z.object({
-				value: z.string(),
-				label: z.string(),
-			}),
-		)
-		.optional(),
+	url: z.string().url(),
 });
 
-export type HarnessOption = z.infer<typeof HarnessOptionSchema>;
+export type McpServer = z.infer<typeof McpServerSchema>;
 
-// Output definition
+// ============================================================================
+// Flow Component and Page Schemas
+// ============================================================================
+
+export const FlowComponentSchema = z.union([
+	z.object({
+		type: z.literal("slot"),
+		id: z.string().min(1),
+	}),
+	z.object({
+		type: z.literal("mcp"),
+	}),
+]);
+
+export type FlowComponent = z.infer<typeof FlowComponentSchema>;
+
+export const FlowPageSchema = z.object({
+	id: z.string().min(1),
+	label: z.string().min(1),
+	components: z.array(FlowComponentSchema).min(1),
+});
+
+export type FlowPage = z.infer<typeof FlowPageSchema>;
+
+// ============================================================================
+// Output Definition
+// ============================================================================
+
 export const HarnessOutputSchema = z.object({
 	path: z.string().min(1),
 	label: z.string().min(1),
@@ -36,7 +228,10 @@ export const HarnessOutputSchema = z.object({
 
 export type HarnessOutput = z.infer<typeof HarnessOutputSchema>;
 
-// Template definition (JSON with $ref placeholders)
+// ============================================================================
+// Template Definition (JSON with $ref placeholders)
+// ============================================================================
+
 export const HarnessTemplateSchema = z.object({
 	output: z.string(), // matches HarnessOutput.path
 	template: z.record(z.string(), z.unknown()), // JSON object with $ref
@@ -44,7 +239,10 @@ export const HarnessTemplateSchema = z.object({
 
 export type HarnessTemplate = z.infer<typeof HarnessTemplateSchema>;
 
-// Full harness config
+// ============================================================================
+// Full Harness Config
+// ============================================================================
+
 export const HarnessConfigSchema = z
 	.object({
 		schemaVersion: z.literal(1),
@@ -52,18 +250,24 @@ export const HarnessConfigSchema = z
 		name: z.string().min(1),
 		description: z.string(),
 
-		slots: z.array(HarnessSlotSchema).min(1),
-		options: z.array(HarnessOptionSchema).optional().default([]),
+		slots: z.record(z.string(), HarnessSlotSchema),
+		mcpServers: z.array(McpServerSchema).optional().default([]),
+		flow: z.array(FlowPageSchema).min(1),
+
 		outputs: z.array(HarnessOutputSchema).min(1),
 		templates: z.array(HarnessTemplateSchema).min(1),
 	})
 	.refine(
-		// Ensure slot IDs are unique
+		// Ensure slot IDs referenced in flow exist
 		(config) => {
-			const ids = config.slots.map((s) => s.id);
-			return new Set(ids).size === ids.length;
+			const slotIds = new Set(Object.keys(config.slots));
+			return config.flow.every((page) =>
+				page.components.every(
+					(comp) => comp.type !== "slot" || slotIds.has(comp.id),
+				),
+			);
 		},
-		{ message: "Slot IDs must be unique" },
+		{ message: "Flow references non-existent slot ID" },
 	)
 	.refine(
 		// Ensure output paths are unique
@@ -83,6 +287,32 @@ export const HarnessConfigSchema = z
 	);
 
 export type HarnessConfig = z.infer<typeof HarnessConfigSchema>;
+
+// ============================================================================
+// Helper Type Guards
+// ============================================================================
+
+/**
+ * Check if a property is configurable (user can change).
+ */
+export function isConfigurableProperty(
+	prop: SlotProperty,
+): prop is Extract<SlotProperty, { configurable: true }> {
+	return "configurable" in prop && prop.configurable === true;
+}
+
+/**
+ * Check if a property is fixed (harness dev sets value).
+ */
+export function isFixedProperty(
+	prop: SlotProperty,
+): prop is Extract<SlotProperty, { value: unknown }> {
+	return "value" in prop;
+}
+
+// ============================================================================
+// Parser Function
+// ============================================================================
 
 /**
  * Parse and validate a harness config.
