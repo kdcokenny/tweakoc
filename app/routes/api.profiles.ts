@@ -3,10 +3,8 @@ import { generateProfileFiles } from "~/lib/api/file-generator";
 import { generateComponentId } from "~/lib/api/id-generator";
 import { checkRateLimit, saveProfile } from "~/lib/api/profile-store";
 import { getSubmissionWithDefaults } from "~/lib/api/ref-resolver";
-import { fetchRegistryFilesWithTimeout } from "~/lib/api/registry-client";
 import { parseCreateProfileRequest } from "~/lib/api/schemas";
 import { createErrorResponse, createJsonResponse } from "~/lib/api/types";
-import { SITE_ORIGIN } from "~/lib/config";
 import { getHarness } from "~/lib/harness-registry";
 import type { SlotDefinition } from "~/lib/harness-schema";
 import type { Route } from "./+types/api.profiles";
@@ -213,27 +211,12 @@ export async function action({ request, context }: Route.ActionArgs) {
 			);
 		}
 
-		// Fetch from registry (single source of truth)
-		try {
-			const registryFiles = await fetchRegistryFilesWithTimeout(
-				SITE_ORIGIN,
-				componentId,
-			);
-			return createJsonResponse(
-				{ componentId, files: registryFiles },
-				{ status: 200 },
-			);
-		} catch (error) {
-			console.error("Registry fetch failed:", error);
-			return createErrorResponse(
-				"REGISTRY_FETCH_ERROR",
-				error instanceof Error
-					? error.message
-					: "Failed to fetch files from registry",
-				500,
-				{ componentId },
-			);
-		}
+		// Transform generated files to registry format
+		const registryFiles = generatedFiles.map((f) => ({ ...f, target: f.path }));
+		return createJsonResponse(
+			{ componentId, files: registryFiles },
+			{ status: 200 },
+		);
 	} catch (error) {
 		if (error instanceof ZodError) {
 			return createErrorResponse(
