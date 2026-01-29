@@ -3,8 +3,10 @@ import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import {
-	HarnessConfigSchema,
+	deriveHarnessId,
 	HarnessValidationError,
+	parseHarnessConfig,
+	VALID_HARNESS_FILENAME,
 	validateHarness,
 } from "../app/lib/harness-schema.ts";
 
@@ -13,13 +15,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const HARNESS_DIR = resolve(__dirname, "../app/config/harnesses");
-const VALID_ID_REGEX = /^[a-z0-9-]+$/;
 
 // Expected harness IDs (must match HARNESS_IDS in harness-registry.ts)
 const EXPECTED_HARNESS_IDS = [
 	"kdco-workspace",
 	"opencode-native",
-	"omo",
+	"oh-my-opencode",
 ] as const;
 
 interface ValidationError {
@@ -49,7 +50,9 @@ try {
 }
 
 const fileIds = new Set<string>();
+const derivedIds = new Set<string>();
 const seenFiles = new Set<string>();
+const defaultProfileNames = new Map<string, string[]>();
 
 // Validate each harness file
 for (const file of files) {
@@ -76,6 +79,40 @@ for (const file of files) {
 	}
 	seenFiles.add(fileName);
 
+	// Validate filename format using VALID_HARNESS_FILENAME regex
+	if (!VALID_HARNESS_FILENAME.test(file)) {
+		errors.push({
+			type: "error",
+			file,
+			message: `Invalid filename format - must match ${VALID_HARNESS_FILENAME}`,
+		});
+		continue;
+	}
+
+	// Derive the ID from filename
+	let derivedId: string;
+	try {
+		derivedId = deriveHarnessId(file);
+	} catch (err) {
+		errors.push({
+			type: "error",
+			file,
+			message: `Failed to derive ID from filename: ${err instanceof Error ? err.message : String(err)}`,
+		});
+		continue;
+	}
+
+	// Check for duplicate derived IDs
+	if (derivedIds.has(derivedId)) {
+		errors.push({
+			type: "error",
+			file,
+			message: `Duplicate harness ID "${derivedId}" derived from ${file}`,
+		});
+		continue;
+	}
+	derivedIds.add(derivedId);
+
 	// Read and parse JSON
 	let raw: unknown;
 	try {
@@ -90,10 +127,10 @@ for (const file of files) {
 		continue;
 	}
 
-	// Validate with HarnessConfigSchema
-	let config: { id: string };
+	// Validate with parseHarnessConfig and validateHarness
+	let config: ReturnType<typeof parseHarnessConfig>;
 	try {
-		config = HarnessConfigSchema.parse(raw);
+		config = parseHarnessConfig(raw, file);
 		// Run additional validation (includes dry run with defaults)
 		validateHarness(config);
 	} catch (err) {
@@ -111,29 +148,32 @@ for (const file of files) {
 		continue;
 	}
 
-	// Check filename matches harness ID
-	if (config.id !== fileName) {
-		errors.push({
-			type: "error",
-			file,
-			message: `Filename "${fileName}.json" does not match harness id "${config.id}"`,
-		});
-	}
+	fileIds.add(derivedId);
 
-	// Validate ID format
-	if (!VALID_ID_REGEX.test(config.id)) {
-		errors.push({
-			type: "error",
-			file,
-			message: `Invalid harness id "${config.id}" - must match ${VALID_ID_REGEX}`,
-		});
+	// Track defaultProfileName for duplicate checking
+	const profileName = config.defaultProfileName;
+	if (!defaultProfileNames.has(profileName)) {
+		defaultProfileNames.set(profileName, []);
 	}
-
-	fileIds.add(config.id);
+	const profileNameFiles = defaultProfileNames.get(profileName);
+	if (profileNameFiles) {
+		profileNameFiles.push(file);
+	}
 }
 
 // Validate registry consistency
 const registryIds = new Set(EXPECTED_HARNESS_IDS);
+
+// Check for duplicate defaultProfileNames
+for (const [profileName, files] of defaultProfileNames) {
+	if (files.length > 1) {
+		const fileList = files.join(" and ");
+		errors.push({
+			type: "error",
+			message: `Duplicate defaultProfileName "${profileName}" in ${fileList}`,
+		});
+	}
+}
 
 // Check that every file ID is in registry
 for (const id of fileIds) {

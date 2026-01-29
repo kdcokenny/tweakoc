@@ -165,8 +165,10 @@ await kv.put("key", "value", { expirationTtl: 3600 });
 **Schema:**
 ```json
 {
-  "id": "harness-id",       // Must match filename
+  // ID is derived from filename (e.g., harness-id.json → ID: "harness-id")
   "name": "Display Name",
+  "description": "What this harness configures",
+  "defaultProfileName": "ws",  // Profile name (lowercase, starts with letter, max 32 chars: a-z 0-9 . _ -)
   "flow": { "requiresPrimary": true, "pages": [...] },
   "slots": { "primary": { "type": "model" }, ... },
   "files": [{ "path": "...", "content": "... $ref{slotId} ..." }]

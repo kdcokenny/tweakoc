@@ -15,7 +15,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 	}
 
 	// Check if this is a packument request (ends with .json)
-	if (path.endsWith(".json")) {
+	if (!path.includes("/") && path.endsWith(".json")) {
 		return handlePackument(path, context);
 	}
 

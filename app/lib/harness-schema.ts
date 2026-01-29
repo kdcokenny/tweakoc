@@ -6,6 +6,23 @@ import {
 } from "./api/ref-resolver.js";
 
 // ============================================================================
+// Harness ID Derivation
+// ============================================================================
+
+export const VALID_HARNESS_FILENAME = /^[a-z][a-z0-9-]*\.json$/;
+export const VALID_HARNESS_ID = /^[a-z][a-z0-9-]*$/;
+
+export function deriveHarnessId(filename: string): string {
+	if (!VALID_HARNESS_FILENAME.test(filename)) {
+		throw new Error(
+			`Invalid harness filename "${filename}" - must be lowercase kebab-case .json`,
+		);
+	}
+	const derivedId = filename.replace(/\.json$/, "");
+	return derivedId;
+}
+
+// ============================================================================
 // Slot Schemas (Discriminated Union)
 // ============================================================================
 
@@ -129,12 +146,15 @@ export type HarnessTemplate = z.infer<typeof HarnessTemplateSchema>;
 // Full Harness Config
 // ============================================================================
 
-export const HarnessConfigSchema = z
+const HarnessConfigSchemaBase = z
 	.object({
 		schemaVersion: z.number().optional(),
-		id: z.string().min(1),
 		name: z.string().min(1),
 		description: z.string(),
+		defaultProfileName: z.string().regex(/^[a-z][a-z0-9._-]{0,31}$/, {
+			message:
+				"Must be lowercase, start with letter, max 32 chars, allowed: a-z 0-9 . _ -",
+		}),
 
 		slots: z.record(z.string(), SlotSchema),
 		flow: z.array(FlowPageSchema).min(1),
@@ -159,7 +179,9 @@ export const HarnessConfigSchema = z
 		{ message: "Template output must match a defined output path" },
 	);
 
-export type HarnessConfig = z.infer<typeof HarnessConfigSchema>;
+export type HarnessConfig = z.infer<typeof HarnessConfigSchemaBase> & {
+	id: string;
+};
 
 // ============================================================================
 // Validation
@@ -272,20 +294,38 @@ export function validateHarness(harness: HarnessConfig): void {
  */
 export function parseHarnessConfig(
 	raw: unknown,
-	sourceFile?: string,
+	filename: string,
 ): HarnessConfig {
 	// Guard clause: ensure we have raw data (Early Exit)
 	if (!raw) {
-		const prefix = sourceFile ? `[${sourceFile}] ` : "";
+		const prefix = filename ? `[${filename}] ` : "";
 		throw new Error(`${prefix}No harness config provided`);
+	}
+
+	// Targeted pre-check: reject configs with 'id' field
+	if (
+		typeof raw === "object" &&
+		raw !== null &&
+		"id" in raw &&
+		raw.id !== undefined
+	) {
+		const prefix = filename ? `[${filename}] ` : "";
+		throw new Error(
+			`${prefix}Harness configs must NOT contain an 'id' field - it is derived from the filename`,
+		);
 	}
 
 	try {
 		// Parse at boundary (Parse Don't Validate)
-		return HarnessConfigSchema.parse(raw);
+		const parsed = HarnessConfigSchemaBase.parse(raw);
+
+		// Derive and inject the id
+		const id = deriveHarnessId(filename);
+
+		return { ...parsed, id };
 	} catch (error) {
 		// Fail fast with descriptive error (Fail Fast, Fail Loud)
-		const prefix = sourceFile ? `[${sourceFile}] ` : "";
+		const prefix = filename ? `[${filename}] ` : "";
 		if (error instanceof z.ZodError) {
 			const issues = error.issues
 				.map((i) => `  - ${i.path.join(".")}: ${i.message}`)

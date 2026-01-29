@@ -57,7 +57,7 @@ export function CreateProfileModal({
 		if (!harnessId) return "my-profile";
 		const harness = getHarness(harnessId);
 		// Fallback to harness ID if no defaultProfileName is defined
-		return harness?.id ?? "my-profile";
+		return harness?.defaultProfileName ?? harness?.id ?? "my-profile";
 	}, [harnessId]);
 	const [profileName, setProfileName] = useState(defaultName);
 

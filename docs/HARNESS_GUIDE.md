@@ -101,9 +101,11 @@ The root configuration object for a harness:
 ```typescript
 {
   schemaVersion?: number,      // Optional, currently not used for behavior
-  id: string,                  // kebab-case, must match filename
   name: string,                // Display name shown in UI
   description: string,         // What this harness configures
+  defaultProfileName: string,  // Required. Default profile name for OCX installation.
+                               // Must be lowercase, start with letter, max 32 chars.
+                               // Allowed: a-z 0-9 . _ -
   slots: Record<string, SlotDefinition>,
   flow: FlowPage[],
   outputs: { path: string, label: string }[],
@@ -111,12 +113,19 @@ The root configuration object for a harness:
 }
 ```
 
+**Note:** Harness ID is automatically derived from the filename. For example, `my-harness.json` will have the ID `my-harness`. The filename (without `.json` extension) must use lowercase kebab-case (lowercase letters, numbers, and hyphens only, matching `/^[a-z0-9-]+$/`).
+
 #### Schema Refinements
 
 - **Unique output paths**: All `outputs[].path` values must be unique
 - **Valid template outputs**: Each `templates[].output` must match an existing `outputs[].path`
-- **Filename matches ID**: The JSON filename (without `.json`) must exactly match the `id` field
-- **Valid ID format**: ID must match `/^[a-z0-9-]+$/` (lowercase letters, numbers, hyphens only)
+- **Valid filename format**: The JSON filename (without `.json`) must match `/^[a-z0-9-]+$/` (lowercase letters, numbers, hyphens only). This filename becomes the harness ID.
+- **Valid profile name format**: `defaultProfileName` must:
+  - Be lowercase only (a-z)
+  - Start with a letter (not digit or special char)
+  - Maximum 32 characters
+  - Contain only: a-z, 0-9, `.`, `_`, `-`
+  - Examples: ✅ `ws`, `my-profile`, `dev.config` | ❌ `WS`, `1profile`, 33+ chars
 
 ### 3.2 Slot Types
 
@@ -580,13 +589,13 @@ The following arrays **must contain identical IDs** or validation will fail:
 
 This minimal harness demonstrates the simplest viable configuration: four model slots with no additional parameters.
 
-**Complete JSON:**
+**Complete JSON** (file: `app/config/harnesses/oh-my-opencode.json`):
 ```json
 {
   "schemaVersion": 1,
-  "id": "omo",
   "name": "OhMyOpenCode",
   "description": "Intelligent agent orchestration with category-based model selection",
+  "defaultProfileName": "ws",
 
   "slots": {
     "visual_engineering_model": {
@@ -899,30 +908,18 @@ These errors come from `scripts/validate-harnesses.ts`:
 
 **Error:** `Filename "${fileName}.json" does not match harness id "${config.id}"`
 
-**Cause:** JSON filename doesn't match the `id` field inside the file
-
-**Solution:** Rename file to match ID or update ID to match filename
-
-**Example:**
-```bash
-# File: custom-harness.json
-# Content: { "id": "my-harness", ... }
-# ❌ Mismatch
-
-# Fix: Rename file
-mv custom-harness.json my-harness.json
-```
+**Note:** This error is now obsolete as harness ID is derived from filename. If you see this error, you're using an outdated harness format. Remove the `id` field from your JSON file - the ID will be automatically set to the filename (without `.json` extension).
 
 ---
 
 **Error:** `Invalid harness id "${config.id}" - must match ${VALID_ID_REGEX}`
 
-**Cause:** Harness ID contains invalid characters (uppercase, special characters, etc.)
+**Cause:** Harness filename contains invalid characters (uppercase, special characters, etc.)
 
-**Solution:** Use only lowercase letters, numbers, and hyphens
+**Solution:** Rename the file to use only lowercase letters, numbers, and hyphens. The harness ID is derived from the filename.
 
-**Valid:** `my-harness`, `kdco-workspace`, `opencode-v2`
-**Invalid:** `MyHarness`, `my_harness`, `harness@v1`
+**Valid filenames:** `my-harness.json`, `kdco-workspace.json`, `opencode-v2.json`
+**Invalid filenames:** `MyHarness.json`, `my_harness.json`, `harness@v1.json`
 
 ---
 

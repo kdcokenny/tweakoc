@@ -69,7 +69,7 @@ export function generateMockFiles(input: FileGeneratorInput): GeneratedFiles {
 	};
 
 	// Add oh-my-opencode.json for OMO harness
-	if (harnessId === "omo") {
+	if (harnessId === "oh-my-opencode") {
 		const omoConfig = {
 			$schema: "https://oh-my-opencode.dev/schema/config.json",
 			orchestrator: {

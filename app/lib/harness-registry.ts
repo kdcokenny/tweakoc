@@ -1,5 +1,5 @@
 import kdcoWorkspaceRaw from "~/config/harnesses/kdco-workspace.json";
-import omoRaw from "~/config/harnesses/oh-my-opencode.json";
+import ohMyOpencodeRaw from "~/config/harnesses/oh-my-opencode.json";
 import opencodeNativeRaw from "~/config/harnesses/opencode-native.json";
 import { type HarnessConfig, parseHarnessConfig } from "./harness-schema";
 
@@ -10,7 +10,7 @@ import { type HarnessConfig, parseHarnessConfig } from "./harness-schema";
 export const HARNESS_IDS = [
 	"kdco-workspace",
 	"opencode-native",
-	"omo",
+	"oh-my-opencode",
 ] as const;
 
 // Parse at load time; full validation via `bun run harness:validate`
@@ -22,7 +22,7 @@ const opencodeNative = parseHarnessConfig(
 	opencodeNativeRaw,
 	"opencode-native.json",
 );
-const omo = parseHarnessConfig(omoRaw, "oh-my-opencode.json");
+const ohMyOpencode = parseHarnessConfig(ohMyOpencodeRaw, "oh-my-opencode.json");
 
 /**
  * Registry of all available harnesses.
@@ -32,9 +32,9 @@ const omo = parseHarnessConfig(omoRaw, "oh-my-opencode.json");
  * 3. Add to HARNESSES object
  */
 export const HARNESSES: Record<string, HarnessConfig> = {
-	"kdco-ws": kdcoWorkspace,
-	native: opencodeNative,
-	omo: omo,
+	"kdco-workspace": kdcoWorkspace,
+	"opencode-native": opencodeNative,
+	"oh-my-opencode": ohMyOpencode,
 };
 
 /**

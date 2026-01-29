@@ -1,8 +1,8 @@
 {
 	"schemaVersion": 1,
-	"id": "opencode-native",
 	"name": "OpenCode Native",
 	"description": "Configure OpenCode's built-in agents and experimental settings",
+	"defaultProfileName": "native",
 	"slots": {
 		"build_model": {
 			"type": "model",
