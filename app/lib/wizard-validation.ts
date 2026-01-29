@@ -9,13 +9,13 @@ export interface StepValidationResult {
 export interface WizardValidationContext {
 	harnessId: string | undefined;
 	providers: string[];
-	slots: Record<string, Record<string, unknown>>;
+	slotValues: Record<string, unknown>;
 }
 
 interface WizardState {
 	harnessId?: string;
 	providers: string[];
-	slots: Record<string, Record<string, unknown>>;
+	slotValues: Record<string, unknown>;
 }
 
 /**
@@ -62,13 +62,13 @@ export function validateStep(
 
 	// Guard: Handle review step (Early Exit)
 	if (stepId === "review") {
-		return validateAllSlots(state.harnessId, state.slots);
+		return validateAllSlots(state.harnessId, state.slotValues);
 	}
 
 	// Guard: Handle page-{id} steps (Early Exit)
 	if (stepId.startsWith("page-")) {
 		const pageId = stepId.slice(5); // Remove "page-" prefix
-		return validateFlowPage(pageId, state.harnessId, state.slots);
+		return validateFlowPage(pageId, state.harnessId, state.slotValues);
 	}
 
 	// Guard: Unknown step type (Fail Fast)
@@ -80,17 +80,17 @@ export function validateStep(
 
 /**
  * Validate all slots on a specific flow page.
- * Checks that all slot components on the page have their model property set.
+ * Checks that all model slots on the page have values set.
  *
  * @param pageId - The flow page ID
  * @param harnessId - The harness identifier
- * @param slots - The current slot configurations
+ * @param slotValues - The current slot values
  * @returns Validation result with errors for incomplete slots
  */
 export function validateFlowPage(
 	pageId: string,
 	harnessId: string,
-	slots: Record<string, Record<string, unknown>>,
+	slotValues: Record<string, unknown>,
 ): StepValidationResult {
 	// Guard: Get harness config (Fail Fast)
 	const harness = getHarness(harnessId);
@@ -111,7 +111,7 @@ export function validateFlowPage(
 	}
 
 	// Collect errors for incomplete slots (Intentional Naming)
-	const errors = collectPageSlotErrors(page, harness.slots, slots);
+	const errors = collectPageSlotErrors(page, harness.slots, slotValues);
 
 	return {
 		isValid: errors.length === 0,
@@ -124,12 +124,12 @@ export function validateFlowPage(
  * Used for the review step to ensure complete configuration.
  *
  * @param harnessId - The harness identifier
- * @param slots - The current slot configurations
+ * @param slotValues - The current slot values
  * @returns Validation result with errors for all incomplete slots
  */
 export function validateAllSlots(
 	harnessId: string,
-	slots: Record<string, Record<string, unknown>>,
+	slotValues: Record<string, unknown>,
 ): StepValidationResult {
 	// Guard: Get harness config (Fail Fast)
 	const harness = getHarness(harnessId);
@@ -144,7 +144,7 @@ export function validateAllSlots(
 	const allErrors: string[] = [];
 
 	for (const page of harness.flow) {
-		const pageErrors = collectPageSlotErrors(page, harness.slots, slots);
+		const pageErrors = collectPageSlotErrors(page, harness.slots, slotValues);
 		allErrors.push(...pageErrors);
 	}
 
@@ -156,34 +156,41 @@ export function validateAllSlots(
 
 /**
  * Helper: Collect error messages for incomplete slots on a page.
- * A slot is complete when slots[slotId]?.model is truthy.
+ * A slot is complete when it has a value set or has a default.
  *
  * @param page - The flow page to validate
  * @param slotDefinitions - The harness slot definitions
- * @param slots - The current slot configurations
+ * @param slotValues - The current slot values
  * @returns Array of error messages for incomplete slots
  */
 function collectPageSlotErrors(
 	page: FlowPage,
-	slotDefinitions: Record<string, { label: string }>,
-	slots: Record<string, Record<string, unknown>>,
+	slotDefinitions: Record<
+		string,
+		{ label: string; type: string; default?: unknown }
+	>,
+	slotValues: Record<string, unknown>,
 ): string[] {
 	const errors: string[] = [];
 
-	// Check each slot component on the page
-	for (const component of page.components) {
-		// Guard: Skip non-slot components (Early Exit)
-		if (component.type !== "slot") {
-			continue;
-		}
+	// Collect all slot IDs from all sections
+	for (const section of page.sections) {
+		const slotIds = [...section.slots, ...(section.advanced ?? [])];
 
-		const slotId = component.id;
-		const slotConfig = slots[slotId];
+		// Check each slot in the section
+		for (const slotId of slotIds) {
+			const slotDef = slotDefinitions[slotId];
+			if (!slotDef) continue;
 
-		// Guard: Check if model is set (Fail Fast with descriptive error)
-		if (!slotConfig?.model) {
-			const slotLabel = slotDefinitions[slotId]?.label ?? slotId;
-			errors.push(`Model required for ${slotLabel}`);
+			// Model slots must have a value set
+			if (slotDef.type === "model") {
+				const value = slotValues[slotId];
+				if (!value) {
+					const slotLabel = slotDef.label ?? slotId;
+					errors.push(`Model required for ${slotLabel}`);
+				}
+			}
+			// Other slot types can use defaults
 		}
 	}
 

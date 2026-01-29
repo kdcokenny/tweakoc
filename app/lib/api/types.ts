@@ -40,10 +40,7 @@ export interface ModelSlotSelection {
 
 export interface CreateProfileRequest {
 	harnessId: string;
-	providers: string[];
-	slots: Record<string, Record<string, unknown>>;
-	selectedMcpServers?: string[];
-	options?: Record<string, unknown>;
+	slotValues: Record<string, unknown>;
 }
 
 export interface GeneratedFile {

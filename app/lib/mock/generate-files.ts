@@ -1,7 +1,7 @@
 interface FileGeneratorInput {
 	harnessId: string;
-	primary: { providerId?: string; modelId?: string };
-	secondary: { providerId?: string; modelId?: string };
+	primary: string;
+	secondary: string;
 	options: Record<string, boolean>;
 }
 
@@ -14,15 +14,8 @@ export interface GeneratedFiles {
 export function generateMockFiles(input: FileGeneratorInput): GeneratedFiles {
 	const { harnessId, primary, secondary, options } = input;
 
-	const primaryModel =
-		primary.providerId && primary.modelId
-			? `${primary.providerId}/${primary.modelId}`
-			: "anthropic/claude-sonnet-4-20250514";
-
-	const secondaryModel =
-		secondary.providerId && secondary.modelId
-			? `${secondary.providerId}/${secondary.modelId}`
-			: "anthropic/claude-3-5-haiku-20241022";
+	const primaryModel = primary || "anthropic/claude-sonnet-4-20250514";
+	const secondaryModel = secondary || "anthropic/claude-3-5-haiku-20241022";
 
 	// Generate opencode.jsonc
 	const opencodeConfig: Record<string, unknown> = {

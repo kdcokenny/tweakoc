@@ -47,14 +47,12 @@ function normalizeOutputPath(path: string): string {
  * Generate profile files from harness templates.
  *
  * @param harnessId - The harness ID
- * @param storeSlots - Slot property values from store { slotId: { propName: value } }
- * @param selectedMcpServers - Array of selected MCP server IDs
+ * @param slotValues - Slot values { slotId: value }
  * @returns Array of generated files
  */
 export function generateProfileFiles(
 	harnessId: string,
-	storeSlots: Record<string, Record<string, unknown>>,
-	selectedMcpServers: string[] = [],
+	slotValues: Record<string, unknown>,
 ): GeneratedFile[] {
 	// Guard: harness must exist
 	const harness = getHarness(harnessId);
@@ -63,7 +61,7 @@ export function generateProfileFiles(
 	}
 
 	// Build resolver context with precedence resolution
-	const context = buildResolverContext(harness, storeSlots, selectedMcpServers);
+	const context = buildResolverContext(harness, slotValues);
 
 	// Track output paths for duplicate detection
 	const seenPaths = new Set<string>();

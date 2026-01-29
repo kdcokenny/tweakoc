@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { Badge } from "~/components/ui/badge";
+import { Field, FieldLabel } from "~/components/ui/field";
 import {
 	Select,
 	SelectContent,
@@ -28,9 +29,8 @@ interface ModelSlotProps {
 export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 	const providers = useWizardStore(selectProviders);
 	const defaultProvider = useWizardStore(selectDefaultProvider);
-	const slotData = useWizardStore((s) => s.slots[slotId]);
-	const setSlotProvider = useWizardStore((s) => s.setSlotProvider);
-	const setSlotModel = useWizardStore((s) => s.setSlotModel);
+	const slotValue = useWizardStore((s) => s.slotValues[slotId]);
+	const setSlotValue = useWizardStore((s) => s.setSlotValue);
 	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
 	const banner = useWizardStore((s) => s.banner);
 	const dismissBanner = useWizardStore((s) => s.dismissBanner);
@@ -42,17 +42,11 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 		void ensureProvidersLoaded();
 	}, [ensureProvidersLoaded]);
 
-	// Extract providerId and modelId from slot data
-	const internalProviderId = slotData?._providerId as string | undefined;
-	const modelValue =
-		typeof slotData?.model === "string" ? slotData.model : undefined;
-	const parsedModelId = modelValue
-		? modelValue.split("/").slice(1).join("/")
-		: undefined;
-	const modelId = parsedModelId || undefined; // Normalize empty string to undefined
-
-	// Current provider (defaults to first selected if not set)
-	const currentProviderId = internalProviderId ?? defaultProvider;
+	// Extract model value (format: "providerId/modelId")
+	const modelValue = typeof slotValue === "string" ? slotValue : undefined;
+	const modelParts = modelValue?.split("/") ?? [];
+	const providerId = modelParts[0] || defaultProvider;
+	const modelId = modelParts.slice(1).join("/") || undefined;
 
 	// Map selected providers - keep unknown ones visible with warning!
 	interface UIProvider extends ProviderSummary {
@@ -79,18 +73,15 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}, [providers, providersById]);
 
-	const handleProviderChange = (providerId: string | null) => {
-		if (providerId) {
-			setSlotProvider(slotId, providerId);
-		}
+	const handleProviderChange = (newProviderId: string | null) => {
+		if (!newProviderId) return;
+		// Clear the model when provider changes
+		setSlotValue(slotId, `${newProviderId}/`);
 	};
 
 	const handleModelChange = (newModelId: string) => {
-		// Ensure provider is set before model
-		if (!internalProviderId && currentProviderId) {
-			setSlotProvider(slotId, currentProviderId);
-		}
-		setSlotModel(slotId, newModelId);
+		// Format: "providerId/modelId"
+		setSlotValue(slotId, `${providerId}/${newModelId}`);
 	};
 
 	const handleEditProviders = () => {
@@ -101,8 +92,8 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 
 	// Memoize model loader to prevent recreation on every render
 	const modelLoader = useMemo(
-		() => createAPIModelLoader(currentProviderId),
-		[currentProviderId],
+		() => createAPIModelLoader(providerId),
+		[providerId],
 	);
 
 	return (
@@ -123,17 +114,13 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 
 			{/* Provider dropdown (hidden if only one provider) */}
 			{showProviderDropdown ? (
-				<div className="flex flex-col gap-2">
-					<div className="text-sm font-medium">Provider</div>
-					<Select
-						value={currentProviderId}
-						onValueChange={handleProviderChange}
-					>
-						<SelectTrigger>
+				<Field>
+					<FieldLabel htmlFor={`${slotId}-provider`}>Provider</FieldLabel>
+					<Select value={providerId} onValueChange={handleProviderChange}>
+						<SelectTrigger id={`${slotId}-provider`}>
 							<SelectValue>
-								{currentProviderId
-									? (providersById[currentProviderId]?.name ??
-										currentProviderId)
+								{providerId
+									? (providersById[providerId]?.name ?? providerId)
 									: "Select provider"}
 							</SelectValue>
 						</SelectTrigger>
@@ -159,27 +146,27 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 							))}
 						</SelectContent>
 					</Select>
-				</div>
+				</Field>
 			) : (
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-medium">Provider:</span>
 					<Badge variant="secondary">
-						{providersById[currentProviderId ?? ""]?.name ??
-							currentProviderId ??
+						{providersById[providerId ?? ""]?.name ??
+							providerId ??
 							"None selected"}
 					</Badge>
 				</div>
 			)}
 
 			{/* Model picker */}
-			<div className="flex flex-col gap-2">
-				<div className="text-sm font-medium">Model</div>
-				{currentProviderId ? (
+			<Field>
+				<FieldLabel htmlFor={`${slotId}-model`}>Model</FieldLabel>
+				{providerId ? (
 					<ModelPicker
-						providerId={currentProviderId}
+						providerId={providerId}
 						value={modelId}
 						onChange={handleModelChange}
-						onClear={() => setSlotModel(slotId, undefined)}
+						onClear={() => setSlotValue(slotId, undefined)}
 						loader={modelLoader}
 					/>
 				) : (
@@ -191,7 +178,7 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 				{showError && !modelValue && (
 					<p className="text-sm text-destructive">Please select a model</p>
 				)}
-			</div>
+			</Field>
 
 			{/* Edit providers link */}
 			<div className="flex items-center justify-between">
@@ -204,9 +191,9 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 				</Link>
 
 				{/* Env var hints */}
-				{currentProviderId && (
+				{providerId && (
 					<div className="text-xs text-muted-foreground">
-						{providersById[currentProviderId]?.envHints.join(", ")}
+						{providersById[providerId]?.envHints.join(", ")}
 					</div>
 				)}
 			</div>

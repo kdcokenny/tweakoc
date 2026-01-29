@@ -6,7 +6,6 @@ export const ROUTES = {
 		providers: "/flow/providers",
 		page: (pageId: string) => `/flow/page/${pageId}`,
 		slot: (slotId: string) => `/flow/slot/${slotId}`,
-		options: "/flow/options",
 		review: "/flow/review",
 	},
 } as const;

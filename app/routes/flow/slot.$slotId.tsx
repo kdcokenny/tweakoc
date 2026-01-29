@@ -1,39 +1,29 @@
 import { Navigate, useParams } from "react-router";
-import { ModelSlot } from "~/components/model-slot";
 import { getHarness } from "~/lib/harness-registry";
-import { useWizardGuard } from "~/lib/hooks";
 import { useWizardStore } from "~/lib/store/wizard-store";
 
-export default function SlotStep() {
+export default function SlotRedirect() {
 	const { slotId } = useParams<{ slotId: string }>();
-	const harnessId = useWizardStore((s) => s.harnessId);
+	const harnessId = useWizardStore((state) => state.harnessId);
+	const harness = harnessId ? getHarness(harnessId) : null;
 
-	// Guard: must have harness and providers selected
-	useWizardGuard({ harness: true, providers: true });
-
-	// Get harness config
-	const harness = harnessId ? getHarness(harnessId) : undefined;
-
-	// Find the slot config
-	const slotConfig = harness?.slots.find((s) => s.id === slotId);
-
-	// If slot not found, redirect to first slot or home
-	if (!slotId || !harness || !slotConfig) {
-		const firstSlotId = harness?.slots[0]?.id;
-		if (firstSlotId) {
-			return <Navigate to={`/flow/slot/${firstSlotId}`} replace />;
-		}
-		return <Navigate to="/" replace />;
+	if (!harness || !slotId) {
+		return <Navigate to="/flow" replace />;
 	}
 
-	return (
-		<div className="flex flex-col gap-6 p-6">
-			<div>
-				<h1 className="text-2xl font-semibold">{slotConfig.label}</h1>
-				<p className="text-muted-foreground mt-1">{slotConfig.description}</p>
-			</div>
+	// Find which page/section contains this slot
+	for (const page of harness.flow) {
+		for (const section of page.sections) {
+			if (
+				section.slots.includes(slotId) ||
+				section.advanced?.includes(slotId)
+			) {
+				return <Navigate to={`/flow/page/${page.id}#${section.id}`} replace />;
+			}
+		}
+	}
 
-			<ModelSlot slotId={slotId} />
-		</div>
-	);
+	// Fallback: go to first page
+	const firstPageId = harness.flow[0]?.id ?? "orchestration";
+	return <Navigate to={`/flow/page/${firstPageId}`} replace />;
 }

@@ -18,7 +18,6 @@ export default [
 		route("flow/providers", "routes/flow/providers.tsx"),
 		route("flow/page/:pageId", "routes/flow/page.$pageId.tsx"),
 		route("flow/slot/:slotId", "routes/flow/slot.$slotId.tsx"),
-		route("flow/options", "routes/flow/options.tsx"),
 		route("flow/review", "routes/flow/review.tsx"),
 	]),
 

@@ -1,29 +1,58 @@
 {
-	"schemaVersion": 1,
+	"schemaVersion": 2,
 	"id": "omo",
 	"name": "OhMyOpenCode",
 	"description": "Intelligent agent orchestration with category-based model selection",
 
-	"slots": [
-		{
-			"id": "visual-engineering",
-			"label": "Visual Engineering",
+	"slots": {
+		"visual_engineering_model": {
+			"type": "model",
+			"label": "Visual Engineering Model",
 			"description": "Frontend, UI/UX, and design-focused tasks"
 		},
-		{
-			"id": "ultrabrain",
-			"label": "Ultrabrain",
+		"ultrabrain_model": {
+			"type": "model",
+			"label": "Ultrabrain Model",
 			"description": "Complex reasoning, architecture, and strategic tasks"
 		},
-		{
-			"id": "quick",
-			"label": "Quick",
+		"quick_model": {
+			"type": "model",
+			"label": "Quick Model",
 			"description": "Fast, simple tasks like git operations and quick fixes"
 		},
-		{
-			"id": "writing",
-			"label": "Writing",
+		"writing_model": {
+			"type": "model",
+			"label": "Writing Model",
 			"description": "Documentation, technical writing, and prose"
+		}
+	},
+
+	"flow": [
+		{
+			"id": "models",
+			"label": "Model Selection",
+			"sections": [
+				{
+					"id": "visual_engineering",
+					"label": "Visual Engineering",
+					"slots": ["visual_engineering_model"]
+				},
+				{
+					"id": "ultrabrain",
+					"label": "Ultrabrain",
+					"slots": ["ultrabrain_model"]
+				},
+				{
+					"id": "quick",
+					"label": "Quick",
+					"slots": ["quick_model"]
+				},
+				{
+					"id": "writing",
+					"label": "Writing",
+					"slots": ["writing_model"]
+				}
+			]
 		}
 	],
 
@@ -39,22 +68,22 @@
 			"template": {
 				"$schema": "https://raw.githubusercontent.com/oh-my-opencode/schema/main/oh-my-opencode.schema.json",
 				"agents": {
-					"sisyphus": { "model": { "$ref": "#/slots/ultrabrain/model" } },
-					"atlas": { "model": { "$ref": "#/slots/ultrabrain/model" } },
-					"oracle": { "model": { "$ref": "#/slots/ultrabrain/model" } },
-					"prometheus": { "model": { "$ref": "#/slots/ultrabrain/model" } },
-					"librarian": { "model": { "$ref": "#/slots/writing/model" } },
-					"metis": { "model": { "$ref": "#/slots/writing/model" } },
-					"momus": { "model": { "$ref": "#/slots/writing/model" } },
-					"explore": { "model": { "$ref": "#/slots/quick/model" } }
+					"sisyphus": { "model": { "$ref": "#/slots/ultrabrain_model" } },
+					"atlas": { "model": { "$ref": "#/slots/ultrabrain_model" } },
+					"oracle": { "model": { "$ref": "#/slots/ultrabrain_model" } },
+					"prometheus": { "model": { "$ref": "#/slots/ultrabrain_model" } },
+					"librarian": { "model": { "$ref": "#/slots/writing_model" } },
+					"metis": { "model": { "$ref": "#/slots/writing_model" } },
+					"momus": { "model": { "$ref": "#/slots/writing_model" } },
+					"explore": { "model": { "$ref": "#/slots/quick_model" } }
 				},
 				"categories": {
 					"visual-engineering": {
-						"model": { "$ref": "#/slots/visual-engineering/model" }
+						"model": { "$ref": "#/slots/visual_engineering_model" }
 					},
-					"ultrabrain": { "model": { "$ref": "#/slots/ultrabrain/model" } },
-					"quick": { "model": { "$ref": "#/slots/quick/model" } },
-					"writing": { "model": { "$ref": "#/slots/writing/model" } }
+					"ultrabrain": { "model": { "$ref": "#/slots/ultrabrain_model" } },
+					"quick": { "model": { "$ref": "#/slots/quick_model" } },
+					"writing": { "model": { "$ref": "#/slots/writing_model" } }
 				}
 			}
 		},
@@ -62,8 +91,8 @@
 			"output": "opencode.jsonc",
 			"template": {
 				"$schema": "https://opencode.ai/config.json",
-				"model": { "$ref": "#/slots/ultrabrain/model" },
-				"small_model": { "$ref": "#/slots/quick/model" },
+				"model": { "$ref": "#/slots/ultrabrain_model" },
+				"small_model": { "$ref": "#/slots/quick_model" },
 				"plugin": ["oh-my-opencode@latest"]
 			}
 		},
@@ -71,7 +100,11 @@
 			"output": "ocx.jsonc",
 			"template": {
 				"$schema": "https://ocx.kdco.dev/schemas/profile.json",
-				"registries": {},
+				"registries": {
+					"kdco": {
+						"url": "https://registry.kdco.dev"
+					}
+				},
 				"renameWindow": true,
 				"exclude": [
 					"**/CLAUDE.md",

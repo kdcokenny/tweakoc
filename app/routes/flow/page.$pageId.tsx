@@ -1,11 +1,12 @@
 import { useRef } from "react";
 import { useParams } from "react-router";
-import { McpSelector } from "~/components/mcp-selector";
-import { SlotCard } from "~/components/slot-card";
+import { SlotControl } from "~/components/slot-control";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { FieldGroup } from "~/components/ui/field";
 import { getHarness } from "~/lib/harness-registry";
 import { useWizardGuard } from "~/lib/hooks/use-wizard-guard";
 import {
-	selectAllSlots,
+	selectAllSlotValues,
 	selectHarnessId,
 	selectProviders,
 	useWizardStore,
@@ -23,7 +24,7 @@ export default function FlowPage() {
 
 	const harnessId = useWizardStore(selectHarnessId);
 	const providers = useWizardStore(selectProviders);
-	const slots = useWizardStore(selectAllSlots);
+	const slotValues = useWizardStore(selectAllSlotValues);
 	const harness = harnessId ? getHarness(harnessId) : null;
 
 	const bannerRef = useRef<HTMLDivElement>(null);
@@ -60,43 +61,15 @@ export default function FlowPage() {
 	}
 
 	// Validate step
-	const ctx: WizardValidationContext = { harnessId, providers, slots };
+	const ctx: WizardValidationContext = {
+		harnessId,
+		providers,
+		slotValues,
+	};
 	const validation = stepId
 		? validateStep(stepId, ctx)
 		: { isValid: true, errors: [] };
 	const showErrorBanner = isAttempted && !validation.isValid;
-
-	// Render components based on flow definition
-	const renderComponent = (
-		component: { type: string; id?: string },
-		index: number,
-	) => {
-		switch (component.type) {
-			case "slot": {
-				if (!component.id) return null;
-				const slot = harness.slots[component.id];
-				if (!slot) return null;
-				return (
-					<SlotCard
-						key={`slot-${component.id}`}
-						slotId={component.id}
-						slot={slot}
-						showErrors={isAttempted}
-					/>
-				);
-			}
-			case "mcp": {
-				return (
-					<McpSelector
-						key={`mcp-${index}`}
-						servers={harness.mcpServers ?? []}
-					/>
-				);
-			}
-			default:
-				return null;
-		}
-	};
 
 	return (
 		<div className="flex flex-col gap-6 p-6">
@@ -120,11 +93,56 @@ export default function FlowPage() {
 				</h1>
 			</div>
 
-			{/* Components */}
+			{/* Sections */}
 			<div className="flex flex-col gap-6">
-				{currentPage.components.map((component, index) =>
-					renderComponent(component, index),
-				)}
+				{currentPage.sections.map((section) => (
+					<div key={section.id} className="space-y-4">
+						<Card id={section.id}>
+							<CardHeader>
+								<CardTitle>{section.label}</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<FieldGroup>
+									{section.slots.map((slotId) => {
+										const slotDef = harness.slots[slotId];
+										if (!slotDef) return null;
+										return (
+											<SlotControl
+												key={slotId}
+												slotId={slotId}
+												slotDef={slotDef}
+												showError={isAttempted}
+											/>
+										);
+									})}
+								</FieldGroup>
+
+								{/* Advanced slots - collapsible INSIDE the same card */}
+								{section.advanced && section.advanced.length > 0 && (
+									<details className="mt-4 border-t pt-4">
+										<summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+											Advanced
+										</summary>
+										<FieldGroup className="mt-3">
+											{section.advanced.map((slotId) => {
+												const slotDef = harness.slots[slotId];
+												if (!slotDef) return null;
+												return (
+													<SlotControl
+														key={slotId}
+														slotId={slotId}
+														slotDef={slotDef}
+														showError={isAttempted}
+													/>
+												);
+											})}
+										</FieldGroup>
+									</details>
+								)}
+							</CardContent>
+						</Card>
+					</div>
+				))}
 			</div>
 		</div>
 	);

@@ -1,244 +1,233 @@
 {
-	"schemaVersion": 1,
+	"schemaVersion": 2,
 	"id": "kdco-workspace",
 	"name": "KDCO Workspace",
 	"description": "Full-featured development environment with specialized agents",
 
 	"slots": {
-		"orchestrator": {
-			"label": "Orchestrator",
-			"description": "Main planning and task delegation",
-			"properties": {
-				"model": { "type": "model", "configurable": true },
-				"temperature": {
-					"type": "number",
-					"configurable": true,
-					"default": 0.3,
-					"min": 0,
-					"max": 2,
-					"step": 0.1
-				},
-				"reasoningEffort": {
-					"type": "enum",
-					"configurable": true,
-					"default": "high",
-					"options": ["low", "medium", "high"]
-				},
-				"textVerbosity": {
-					"type": "enum",
-					"configurable": true,
-					"default": "low",
-					"options": ["low", "medium", "high"]
-				}
-			},
-			"advancedGroup": {
-				"label": "Advanced",
-				"collapsible": true,
-				"collapsed": true,
-				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
-			}
+		"orchestrator_model": {
+			"type": "model",
+			"label": "Orchestrator Model"
 		},
-		"coder": {
-			"label": "Coder",
-			"description": "Code generation and modification",
-			"properties": {
-				"model": { "type": "model", "configurable": true },
-				"temperature": {
-					"type": "number",
-					"configurable": true,
-					"default": 0.2,
-					"min": 0,
-					"max": 2,
-					"step": 0.1
-				},
-				"reasoningEffort": {
-					"type": "enum",
-					"configurable": true,
-					"default": "high",
-					"options": ["low", "medium", "high"]
-				},
-				"textVerbosity": {
-					"type": "enum",
-					"configurable": true,
-					"default": "low",
-					"options": ["low", "medium", "high"]
-				}
-			},
-			"advancedGroup": {
-				"label": "Advanced",
-				"collapsible": true,
-				"collapsed": true,
-				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
-			}
+		"orchestrator_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.3,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
 		},
-		"explorer": {
-			"label": "Explorer",
-			"description": "Codebase exploration and navigation",
-			"properties": {
-				"model": { "type": "model", "configurable": true },
-				"temperature": {
-					"type": "number",
-					"configurable": true,
-					"default": 0.2,
-					"min": 0,
-					"max": 2,
-					"step": 0.1
-				},
-				"reasoningEffort": {
-					"type": "enum",
-					"configurable": true,
-					"default": "low",
-					"options": ["low", "medium", "high"]
-				},
-				"textVerbosity": {
-					"type": "enum",
-					"configurable": true,
-					"default": "low",
-					"options": ["low", "medium", "high"]
-				}
-			},
-			"advancedGroup": {
-				"label": "Advanced",
-				"collapsible": true,
-				"collapsed": true,
-				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
-			}
+		"orchestrator_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "high",
+			"options": ["low", "medium", "high"]
 		},
-		"researcher": {
-			"label": "Researcher",
-			"description": "Research, analysis, and documentation lookup",
-			"properties": {
-				"model": { "type": "model", "configurable": true },
-				"temperature": {
-					"type": "number",
-					"configurable": true,
-					"default": 0.4,
-					"min": 0,
-					"max": 2,
-					"step": 0.1
-				},
-				"reasoningEffort": {
-					"type": "enum",
-					"configurable": true,
-					"default": "high",
-					"options": ["low", "medium", "high"]
-				},
-				"textVerbosity": {
-					"type": "enum",
-					"configurable": true,
-					"default": "medium",
-					"options": ["low", "medium", "high"]
-				}
-			},
-			"advancedGroup": {
-				"label": "Advanced",
-				"collapsible": true,
-				"collapsed": true,
-				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
-			}
+		"orchestrator_verbosity": {
+			"type": "enum",
+			"label": "Text Verbosity",
+			"default": "low",
+			"options": ["low", "medium", "high"]
 		},
-		"scribe": {
-			"label": "Scribe",
-			"description": "Documentation and content writing",
-			"properties": {
-				"model": { "type": "model", "configurable": true },
-				"temperature": {
-					"type": "number",
-					"configurable": true,
-					"default": 1.0,
-					"min": 0,
-					"max": 2,
-					"step": 0.1
-				},
-				"reasoningEffort": {
-					"type": "enum",
-					"configurable": true,
-					"default": "low",
-					"options": ["low", "medium", "high"]
-				},
-				"textVerbosity": {
-					"type": "enum",
-					"configurable": true,
-					"default": "high",
-					"options": ["low", "medium", "high"]
-				}
-			},
-			"advancedGroup": {
-				"label": "Advanced",
-				"collapsible": true,
-				"collapsed": true,
-				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
-			}
+		"coder_model": {
+			"type": "model",
+			"label": "Coder Model"
 		},
-		"reviewer": {
-			"label": "Reviewer",
-			"description": "Code review and quality assurance",
-			"properties": {
-				"model": { "type": "model", "configurable": true },
-				"temperature": {
-					"type": "number",
-					"configurable": true,
-					"default": 0.1,
-					"min": 0,
-					"max": 2,
-					"step": 0.1
-				},
-				"reasoningEffort": {
-					"type": "enum",
-					"configurable": true,
-					"default": "high",
-					"options": ["low", "medium", "high"]
-				},
-				"textVerbosity": {
-					"type": "enum",
-					"configurable": true,
-					"default": "medium",
-					"options": ["low", "medium", "high"]
-				}
-			},
-			"advancedGroup": {
-				"label": "Advanced",
-				"collapsible": true,
-				"collapsed": true,
-				"properties": ["temperature", "reasoningEffort", "textVerbosity"]
-			}
+		"coder_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.2,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"coder_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "high",
+			"options": ["low", "medium", "high"]
+		},
+		"coder_verbosity": {
+			"type": "enum",
+			"label": "Text Verbosity",
+			"default": "low",
+			"options": ["low", "medium", "high"]
+		},
+		"explorer_model": {
+			"type": "model",
+			"label": "Explorer Model"
+		},
+		"explorer_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.2,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"explorer_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "low",
+			"options": ["low", "medium", "high"]
+		},
+		"explorer_verbosity": {
+			"type": "enum",
+			"label": "Text Verbosity",
+			"default": "low",
+			"options": ["low", "medium", "high"]
+		},
+		"researcher_model": {
+			"type": "model",
+			"label": "Researcher Model"
+		},
+		"researcher_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.4,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"researcher_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "high",
+			"options": ["low", "medium", "high"]
+		},
+		"researcher_verbosity": {
+			"type": "enum",
+			"label": "Text Verbosity",
+			"default": "medium",
+			"options": ["low", "medium", "high"]
+		},
+		"scribe_model": {
+			"type": "model",
+			"label": "Scribe Model"
+		},
+		"scribe_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 1.0,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"scribe_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "low",
+			"options": ["low", "medium", "high"]
+		},
+		"scribe_verbosity": {
+			"type": "enum",
+			"label": "Text Verbosity",
+			"default": "high",
+			"options": ["low", "medium", "high"]
+		},
+		"reviewer_model": {
+			"type": "model",
+			"label": "Reviewer Model"
+		},
+		"reviewer_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.1,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"reviewer_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "high",
+			"options": ["low", "medium", "high"]
+		},
+		"reviewer_verbosity": {
+			"type": "enum",
+			"label": "Text Verbosity",
+			"default": "medium",
+			"options": ["low", "medium", "high"]
 		}
 	},
-
-	"mcpServers": [
-		{
-			"id": "context7",
-			"label": "Context7",
-			"url": "https://mcp.context7.com/mcp"
-		},
-		{ "id": "exa", "label": "Exa", "url": "https://mcp.exa.ai/mcp" },
-		{ "id": "gh_grep", "label": "GitHub Grep", "url": "https://mcp.grep.app" }
-	],
 
 	"flow": [
 		{
 			"id": "orchestration",
 			"label": "Orchestration",
-			"components": [
-				{ "type": "slot", "id": "orchestrator" },
-				{ "type": "slot", "id": "coder" }
+			"sections": [
+				{
+					"id": "orchestrator",
+					"label": "Orchestrator",
+					"slots": ["orchestrator_model"],
+					"advanced": [
+						"orchestrator_temperature",
+						"orchestrator_reasoning",
+						"orchestrator_verbosity"
+					]
+				},
+				{
+					"id": "coder",
+					"label": "Coder",
+					"slots": ["coder_model"],
+					"advanced": [
+						"coder_temperature",
+						"coder_reasoning",
+						"coder_verbosity"
+					]
+				}
 			]
 		},
 		{
 			"id": "exploration",
 			"label": "Exploration & Research",
-			"components": [
-				{ "type": "slot", "id": "explorer" },
-				{ "type": "slot", "id": "researcher" }
+			"sections": [
+				{
+					"id": "explorer",
+					"label": "Explorer",
+					"slots": ["explorer_model"],
+					"advanced": [
+						"explorer_temperature",
+						"explorer_reasoning",
+						"explorer_verbosity"
+					]
+				},
+				{
+					"id": "researcher",
+					"label": "Researcher",
+					"slots": ["researcher_model"],
+					"advanced": [
+						"researcher_temperature",
+						"researcher_reasoning",
+						"researcher_verbosity"
+					]
+				}
 			]
 		},
 		{
 			"id": "content",
 			"label": "Content & Review",
-			"components": [
-				{ "type": "slot", "id": "scribe" },
-				{ "type": "slot", "id": "reviewer" },
-				{ "type": "mcp" }
+			"sections": [
+				{
+					"id": "scribe",
+					"label": "Scribe",
+					"slots": ["scribe_model"],
+					"advanced": [
+						"scribe_temperature",
+						"scribe_reasoning",
+						"scribe_verbosity"
+					]
+				},
+				{
+					"id": "reviewer",
+					"label": "Reviewer",
+					"slots": ["reviewer_model"],
+					"advanced": [
+						"reviewer_temperature",
+						"reviewer_reasoning",
+						"reviewer_verbosity"
+					]
+				}
 			]
 		}
 	],
@@ -253,64 +242,81 @@
 			"output": "opencode.jsonc",
 			"template": {
 				"$schema": "https://opencode.ai/config.json",
-				"model": { "$ref": "#/slots/orchestrator/model" },
-				"small_model": { "$ref": "#/slots/explorer/model" },
+				"model": { "$ref": "#/slots/orchestrator_model" },
+				"small_model": { "$ref": "#/slots/explorer_model" },
 				"agent": {
 					"plan": {
-						"model": { "$ref": "#/slots/orchestrator/model" },
-						"temperature": { "$ref": "#/slots/orchestrator/temperature" },
+						"model": { "$ref": "#/slots/orchestrator_model" },
+						"temperature": { "$ref": "#/slots/orchestrator_temperature" },
 						"reasoningEffort": {
-							"$ref": "#/slots/orchestrator/reasoningEffort"
+							"$ref": "#/slots/orchestrator_reasoning"
 						},
-						"textVerbosity": { "$ref": "#/slots/orchestrator/textVerbosity" }
+						"textVerbosity": { "$ref": "#/slots/orchestrator_verbosity" }
 					},
 					"build": {
-						"model": { "$ref": "#/slots/orchestrator/model" },
-						"temperature": { "$ref": "#/slots/orchestrator/temperature" },
+						"model": { "$ref": "#/slots/orchestrator_model" },
+						"temperature": { "$ref": "#/slots/orchestrator_temperature" },
 						"reasoningEffort": {
-							"$ref": "#/slots/orchestrator/reasoningEffort"
+							"$ref": "#/slots/orchestrator_reasoning"
 						},
-						"textVerbosity": { "$ref": "#/slots/orchestrator/textVerbosity" }
+						"textVerbosity": { "$ref": "#/slots/orchestrator_verbosity" }
 					},
 					"coder": {
-						"model": { "$ref": "#/slots/coder/model" },
-						"temperature": { "$ref": "#/slots/coder/temperature" },
-						"reasoningEffort": { "$ref": "#/slots/coder/reasoningEffort" },
-						"textVerbosity": { "$ref": "#/slots/coder/textVerbosity" }
+						"model": { "$ref": "#/slots/coder_model" },
+						"temperature": { "$ref": "#/slots/coder_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/coder_reasoning" },
+						"textVerbosity": { "$ref": "#/slots/coder_verbosity" }
 					},
 					"explore": {
-						"model": { "$ref": "#/slots/explorer/model" },
-						"temperature": { "$ref": "#/slots/explorer/temperature" },
-						"reasoningEffort": { "$ref": "#/slots/explorer/reasoningEffort" },
-						"textVerbosity": { "$ref": "#/slots/explorer/textVerbosity" }
+						"model": { "$ref": "#/slots/explorer_model" },
+						"temperature": { "$ref": "#/slots/explorer_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/explorer_reasoning" },
+						"textVerbosity": { "$ref": "#/slots/explorer_verbosity" }
 					},
 					"researcher": {
-						"model": { "$ref": "#/slots/researcher/model" },
-						"temperature": { "$ref": "#/slots/researcher/temperature" },
-						"reasoningEffort": { "$ref": "#/slots/researcher/reasoningEffort" },
-						"textVerbosity": { "$ref": "#/slots/researcher/textVerbosity" }
+						"model": { "$ref": "#/slots/researcher_model" },
+						"temperature": { "$ref": "#/slots/researcher_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/researcher_reasoning" },
+						"textVerbosity": { "$ref": "#/slots/researcher_verbosity" }
 					},
 					"scribe": {
-						"model": { "$ref": "#/slots/scribe/model" },
-						"temperature": { "$ref": "#/slots/scribe/temperature" },
-						"reasoningEffort": { "$ref": "#/slots/scribe/reasoningEffort" },
-						"textVerbosity": { "$ref": "#/slots/scribe/textVerbosity" }
+						"model": { "$ref": "#/slots/scribe_model" },
+						"temperature": { "$ref": "#/slots/scribe_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/scribe_reasoning" },
+						"textVerbosity": { "$ref": "#/slots/scribe_verbosity" }
 					},
 					"reviewer": {
-						"model": { "$ref": "#/slots/reviewer/model" },
-						"temperature": { "$ref": "#/slots/reviewer/temperature" },
-						"reasoningEffort": { "$ref": "#/slots/reviewer/reasoningEffort" },
-						"textVerbosity": { "$ref": "#/slots/reviewer/textVerbosity" }
+						"model": { "$ref": "#/slots/reviewer_model" },
+						"temperature": { "$ref": "#/slots/reviewer_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/reviewer_reasoning" },
+						"textVerbosity": { "$ref": "#/slots/reviewer_verbosity" }
 					}
 				},
-				"mcp": { "$ref": "#/mcp" }
+				"mcp": {
+					"context7": {
+						"type": "remote",
+						"url": "https://mcp.context7.com/mcp"
+					},
+					"exa": {
+						"type": "remote",
+						"url": "https://mcp.exa.ai/mcp"
+					},
+					"gh_grep": {
+						"type": "remote",
+						"url": "https://mcp.grep.app"
+					}
+				}
 			}
 		},
 		{
 			"output": "ocx.jsonc",
 			"template": {
 				"$schema": "https://ocx.kdco.dev/schemas/profile.json",
-				"registries": {},
+				"registries": {
+					"kdco": {
+						"url": "https://registry.kdco.dev"
+					}
+				},
 				"exclude": ["**/CLAUDE.md", "**/CONTEXT.md", "**/.opencode/**"]
 			}
 		}

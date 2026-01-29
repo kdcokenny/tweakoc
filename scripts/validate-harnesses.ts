@@ -2,7 +2,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { HarnessConfigSchema } from "../app/lib/harness-schema.ts";
+import {
+	HarnessConfigSchema,
+	HarnessValidationError,
+	validateHarness,
+} from "../app/lib/harness-schema.ts";
 
 // Get script directory
 const __filename = fileURLToPath(import.meta.url);
@@ -87,11 +91,15 @@ for (const file of files) {
 	let config: { id: string };
 	try {
 		config = HarnessConfigSchema.parse(raw);
+		// Run additional validation (includes dry run with defaults)
+		validateHarness(config);
 	} catch (err) {
 		const errorMsg =
 			err instanceof z.ZodError
 				? err.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ")
-				: String(err);
+				: err instanceof HarnessValidationError
+					? `${err.path}: ${err.message}`
+					: String(err);
 		errors.push({
 			type: "error",
 			file,

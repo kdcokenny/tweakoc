@@ -4,13 +4,12 @@
  * Resolves $ref placeholders in JSON templates using RFC 6901 JSON Pointer syntax.
  *
  * Example:
- *   Template: { "model": { "$ref": "#/slots/ultrabrain/model" } }
- *   Context: { slots: { ultrabrain: { model: "openai/gpt-5" } } }
+ *   Template: { "model": { "$ref": "#/slots/orchestrator" } }
+ *   Context: { slots: { orchestrator: "openai/gpt-5" } }
  *   Result: { "model": "openai/gpt-5" }
  */
 
-import type { HarnessConfig, SlotProperty } from "~/lib/harness-schema";
-import { isConfigurableProperty, isFixedProperty } from "~/lib/harness-schema";
+import type { HarnessConfig } from "~/lib/harness-schema";
 
 const MAX_DEPTH = 100;
 
@@ -18,9 +17,7 @@ const MAX_DEPTH = 100;
  * Context for resolving $ref pointers.
  */
 export interface ResolverContext {
-	slots: Record<string, Record<string, unknown>>; // slotId -> propertyName -> value
-	options: Record<string, unknown>;
-	mcp: Record<string, string>; // serverId -> url (for selected MCP servers)
+	slots: Record<string, unknown>; // slotId → value (flat)
 }
 
 /**
@@ -48,27 +45,36 @@ function isRefObject(value: unknown): value is { $ref: string } {
 }
 
 /**
- * Parse a JSON Pointer string into segments.
- * Handles RFC 6901 escaping: ~0 = ~, ~1 = /
+ * Parse a JSON Pointer string and validate format.
+ * Only accepts #/slots/<slotId> format.
  *
- * @param pointer - JSON Pointer string (e.g., "#/slots/ultrabrain/model")
- * @returns Array of path segments
+ * @param pointer - JSON Pointer string (e.g., "#/slots/orchestrator")
+ * @returns slotId
  */
-function parseJsonPointer(pointer: string): string[] {
-	// Must start with #/
-	if (!pointer.startsWith("#/")) {
-		throw new Error(`Invalid JSON Pointer "${pointer}": must start with "#/"`);
+function parseJsonPointer(pointer: string): string {
+	// Must start with #/slots/
+	if (!pointer.startsWith("#/slots/")) {
+		throw new Error(
+			`Invalid JSON Pointer "${pointer}": must start with "#/slots/"`,
+		);
 	}
 
-	// Remove #/ prefix and split
-	const path = pointer.slice(2);
-	if (path === "") return [];
+	// Extract slot ID
+	const slotId = pointer.slice(8); // Remove "#/slots/" prefix
 
-	return path.split("/").map((segment) => {
-		// RFC 6901 unescaping: ~1 -> /, ~0 -> ~
-		// Order matters: ~1 first, then ~0
-		return segment.replace(/~1/g, "/").replace(/~0/g, "~");
-	});
+	// Must not be empty
+	if (slotId === "") {
+		throw new Error(`Invalid JSON Pointer "${pointer}": slot ID is empty`);
+	}
+
+	// Must not contain additional path segments
+	if (slotId.includes("/")) {
+		throw new Error(
+			`Invalid JSON Pointer "${pointer}": nested paths are not supported. Use flat slot IDs only (e.g., "#/slots/orchestrator")`,
+		);
+	}
+
+	return slotId;
 }
 
 /**
@@ -79,36 +85,15 @@ function parseJsonPointer(pointer: string): string[] {
  * @returns Resolved value
  */
 function resolvePointer(pointer: string, context: ResolverContext): unknown {
-	const segments = parseJsonPointer(pointer);
+	const slotId = parseJsonPointer(pointer);
 
-	let current: unknown = context;
-	const visited: string[] = [];
-
-	for (const segment of segments) {
-		visited.push(segment);
-
-		if (current === null || current === undefined) {
-			throw new Error(
-				`Failed to resolve "${pointer}": path "${visited.join("/")}" is ${current}`,
-			);
-		}
-
-		if (typeof current !== "object") {
-			throw new Error(
-				`Failed to resolve "${pointer}": cannot access "${segment}" on ${typeof current}`,
-			);
-		}
-
-		if (!(segment in current)) {
-			throw new Error(
-				`Failed to resolve "${pointer}": key "${segment}" not found at "/${visited.slice(0, -1).join("/")}"`,
-			);
-		}
-
-		current = (current as Record<string, unknown>)[segment];
+	if (!(slotId in context.slots)) {
+		throw new Error(
+			`Failed to resolve "${pointer}": slot "${slotId}" not found in context`,
+		);
 	}
 
-	return current;
+	return context.slots[slotId];
 }
 
 /**
@@ -166,88 +151,31 @@ export function resolveRefs(
 }
 
 /**
- * Resolve a single property value using precedence rules.
- * 1. Fixed value (if property has 'value' field)
- * 2. Store override (if provided)
- * 3. Default (if property has 'default' field)
- * 4. Error (missing required)
+ * Applies slot defaults to user-provided values.
+ * Used at runtime (API) and build-time (validation) for consistency.
  */
-function resolvePropertyValue(
-	slotId: string,
-	propertyName: string,
-	property: SlotProperty,
-	storeValue: unknown,
-): unknown {
-	// 1. Fixed value always wins
-	if (isFixedProperty(property)) {
-		return property.value;
+export function getSubmissionWithDefaults(
+	harness: HarnessConfig,
+	userValues: Record<string, unknown> = {},
+): Record<string, unknown> {
+	const result: Record<string, unknown> = {};
+
+	for (const [slotId, slotDef] of Object.entries(harness.slots)) {
+		// User value takes precedence, then default
+		result[slotId] = userValues[slotId] ?? slotDef.default;
 	}
 
-	// 2. Store override
-	if (storeValue !== undefined) {
-		return storeValue;
-	}
-
-	// 3. Default value (for configurable properties)
-	if (
-		isConfigurableProperty(property) &&
-		"default" in property &&
-		property.default !== undefined
-	) {
-		return property.default;
-	}
-
-	// 4. Missing required value
-	// For model type, this is an error
-	// For other types with no default, this is also an error
-	if (property.type === "model") {
-		throw new Error(`Missing required model for slot '${slotId}'`);
-	}
-
-	throw new Error(
-		`Missing required value for slot '${slotId}' property '${propertyName}'`,
-	);
+	return result;
 }
 
 /**
- * Build a resolver context from harness config and store state.
- * Applies precedence rules for all slot properties.
+ * Build a resolver context from harness config and slot values.
+ * Applies defaults for missing values.
  */
 export function buildResolverContext(
 	harness: HarnessConfig,
-	storeSlots: Record<string, Record<string, unknown>>,
-	selectedMcpServers: string[],
+	slotValues: Record<string, unknown>,
 ): ResolverContext {
-	const slots: Record<string, Record<string, unknown>> = {};
-
-	// Resolve each slot's properties
-	for (const [slotId, slotDef] of Object.entries(harness.slots)) {
-		const slotStore = storeSlots[slotId] ?? {};
-		const resolvedProps: Record<string, unknown> = {};
-
-		for (const [propName, propDef] of Object.entries(slotDef.properties)) {
-			resolvedProps[propName] = resolvePropertyValue(
-				slotId,
-				propName,
-				propDef,
-				slotStore[propName],
-			);
-		}
-
-		slots[slotId] = resolvedProps;
-	}
-
-	// Build MCP server map (selected servers only)
-	const mcp: Record<string, string> = {};
-	for (const server of harness.mcpServers ?? []) {
-		if (selectedMcpServers.includes(server.id)) {
-			mcp[server.id] = server.url;
-		}
-	}
-
-	return {
-		slots,
-		options: {}, // Can be extended later for generic options
-		mcp,
-	};
+	const slots = getSubmissionWithDefaults(harness, slotValues);
+	return { slots };
 }

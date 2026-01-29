@@ -8,30 +8,14 @@ import {
 describe("resolveRefs", () => {
 	const context: ResolverContext = {
 		slots: {
-			ultrabrain: {
-				providerId: "openai",
-				modelId: "gpt-5",
-				model: "openai/gpt-5",
-			},
-			quick: {
-				providerId: "anthropic",
-				modelId: "haiku",
-				model: "anthropic/haiku",
-			},
-			"visual-engineering": {
-				providerId: "google",
-				modelId: "gemini",
-				model: "google/gemini",
-			},
-		},
-		options: {
-			renameWindow: true,
-			theme: "dark",
+			ultrabrain: "openai/gpt-5",
+			quick: "anthropic/haiku",
+			"visual-engineering": "google/gemini",
 		},
 	};
 
 	it("resolves simple $ref", () => {
-		const template = { model: { $ref: "#/slots/ultrabrain/model" } };
+		const template = { model: { $ref: "#/slots/ultrabrain" } };
 		const result = resolveRefs(template, context);
 		expect(result).toEqual({ model: "openai/gpt-5" });
 	});
@@ -39,8 +23,8 @@ describe("resolveRefs", () => {
 	it("resolves nested $ref", () => {
 		const template = {
 			config: {
-				primary: { $ref: "#/slots/ultrabrain/model" },
-				secondary: { $ref: "#/slots/quick/model" },
+				primary: { $ref: "#/slots/ultrabrain" },
+				secondary: { $ref: "#/slots/quick" },
 			},
 		};
 		const result = resolveRefs(template, context);
@@ -54,10 +38,7 @@ describe("resolveRefs", () => {
 
 	it("resolves $ref in arrays", () => {
 		const template = {
-			models: [
-				{ $ref: "#/slots/ultrabrain/model" },
-				{ $ref: "#/slots/quick/model" },
-			],
+			models: [{ $ref: "#/slots/ultrabrain" }, { $ref: "#/slots/quick" }],
 		};
 		const result = resolveRefs(template, context);
 		expect(result).toEqual({
@@ -66,15 +47,9 @@ describe("resolveRefs", () => {
 	});
 
 	it("resolves hyphenated slot IDs", () => {
-		const template = { model: { $ref: "#/slots/visual-engineering/model" } };
+		const template = { model: { $ref: "#/slots/visual-engineering" } };
 		const result = resolveRefs(template, context);
 		expect(result).toEqual({ model: "google/gemini" });
-	});
-
-	it("resolves options", () => {
-		const template = { rename: { $ref: "#/options/renameWindow" } };
-		const result = resolveRefs(template, context);
-		expect(result).toEqual({ rename: true });
 	});
 
 	it("passes through primitives", () => {
@@ -91,51 +66,58 @@ describe("resolveRefs", () => {
 
 	it("throws on sibling keys with $ref", () => {
 		const template = {
-			model: { $ref: "#/slots/ultrabrain/model", extra: "value" },
+			model: { $ref: "#/slots/ultrabrain", extra: "value" },
 		};
 		expect(() => resolveRefs(template, context)).toThrow("sibling keys");
 	});
 
 	it("throws on invalid pointer format", () => {
-		const template = { model: { $ref: "slots/ultrabrain/model" } };
+		const template = { model: { $ref: "slots/ultrabrain" } };
 		expect(() => resolveRefs(template, context)).toThrow(
-			'must start with "#/"',
+			'must start with "#/slots/"',
 		);
 	});
 
-	it("throws on non-existent path", () => {
-		const template = { model: { $ref: "#/slots/nonexistent/model" } };
+	it("throws on unknown slot ID", () => {
+		const template = { model: { $ref: "#/slots/nonexistent" } };
 		expect(() => resolveRefs(template, context)).toThrow(
-			'key "nonexistent" not found',
+			'slot "nonexistent" not found',
+		);
+	});
+
+	it("throws on nested path in $ref", () => {
+		const template = { model: { $ref: "#/slots/ultrabrain/model" } };
+		expect(() => resolveRefs(template, context)).toThrow(
+			"nested paths are not supported",
 		);
 	});
 
 	it("handles RFC 6901 escaping (~0 and ~1)", () => {
 		const contextWithSpecialKeys: ResolverContext = {
 			slots: {
-				"a/b": { providerId: "test", modelId: "slash", model: "test/slash" },
-				"x~y": { providerId: "test", modelId: "tilde", model: "test/tilde" },
+				"a/b": "test/slash",
+				"x~y": "test/tilde",
 			},
-			options: {},
 		};
 
-		// ~1 decodes to /
-		const template1 = { model: { $ref: "#/slots/a~1b/model" } };
-		expect(resolveRefs(template1, contextWithSpecialKeys)).toEqual({
-			model: "test/slash",
-		});
+		// Note: In flat slots model, we don't support path traversal
+		// These special keys are just part of the slot ID itself
+		const template1 = { value: { $ref: "#/slots/a/b" } };
+		expect(() => resolveRefs(template1, contextWithSpecialKeys)).toThrow(
+			"nested paths are not supported",
+		);
 
-		// ~0 decodes to ~
-		const template2 = { model: { $ref: "#/slots/x~0y/model" } };
+		// Slot IDs with ~ should work directly without escaping
+		const template2 = { value: { $ref: "#/slots/x~y" } };
 		expect(resolveRefs(template2, contextWithSpecialKeys)).toEqual({
-			model: "test/tilde",
+			value: "test/tilde",
 		});
 	});
 
 	it("throws on max depth exceeded", () => {
 		// Create deeply nested template
 		let template: Record<string, unknown> = {
-			value: { $ref: "#/slots/ultrabrain/model" },
+			value: { $ref: "#/slots/ultrabrain" },
 		};
 		for (let i = 0; i < 150; i++) {
 			template = { nested: template };
@@ -145,17 +127,58 @@ describe("resolveRefs", () => {
 });
 
 describe("buildResolverContext", () => {
-	it("builds context with computed model field", () => {
-		const slots = {
-			ultrabrain: { providerId: "openai", modelId: "gpt-5" },
-			quick: { providerId: "anthropic", modelId: "haiku" },
+	it("builds flat slots context from harness and values", () => {
+		const harness = {
+			id: "test",
+			name: "Test",
+			description: "Test harness",
+			slots: {
+				ultrabrain: {
+					type: "model" as const,
+					label: "Ultrabrain Model",
+					default: "anthropic/claude-sonnet-4",
+				},
+				quick: {
+					type: "model" as const,
+					label: "Quick Model",
+					default: "anthropic/claude-haiku-3",
+				},
+			},
+			flow: [{ id: "test", title: "Test", slots: [] }],
+			outputs: [{ path: "test.txt", template: "test" }],
+			templates: [{ id: "test", content: "test" }],
 		};
-		const options = { theme: "dark" };
 
-		const context = buildResolverContext(slots, options);
+		const slotValues = {
+			ultrabrain: "openai/gpt-5",
+			quick: "anthropic/haiku",
+		};
 
-		expect(context.slots.ultrabrain.model).toBe("openai/gpt-5");
-		expect(context.slots.quick.model).toBe("anthropic/haiku");
-		expect(context.options).toEqual({ theme: "dark" });
+		const context = buildResolverContext(harness, slotValues);
+
+		expect(context.slots.ultrabrain).toBe("openai/gpt-5");
+		expect(context.slots.quick).toBe("anthropic/haiku");
+	});
+
+	it("applies defaults for missing values", () => {
+		const harness = {
+			id: "test",
+			name: "Test",
+			description: "Test harness",
+			slots: {
+				model: {
+					type: "model" as const,
+					label: "Model",
+					default: "anthropic/claude-sonnet-4",
+				},
+			},
+			flow: [{ id: "test", title: "Test", slots: [] }],
+			outputs: [{ path: "test.txt", template: "test" }],
+			templates: [{ id: "test", content: "test" }],
+		};
+
+		const context = buildResolverContext(harness, {});
+
+		expect(context.slots.model).toBe("anthropic/claude-sonnet-4");
 	});
 });

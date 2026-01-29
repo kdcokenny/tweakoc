@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ROUTES } from "~/lib/routes";
 import {
-	selectAllSlots,
+	selectAllSlotValues,
 	selectAreAllSlotsComplete,
 	selectHarnessId,
 	selectHasProviders,
@@ -46,7 +46,7 @@ export function useWizardGuard(requirements: GuardRequirements): GuardResult {
 	const hasProviders = useWizardStore(selectHasProviders);
 	const allSlotsComplete = useWizardStore(selectAreAllSlotsComplete);
 	const providers = useWizardStore(selectProviders);
-	const slots = useWizardStore(selectAllSlots);
+	const slotValues = useWizardStore(selectAllSlotValues);
 
 	// Compute redirect target based on missing requirements
 	const redirectTo = useMemo(() => {
@@ -72,7 +72,11 @@ export function useWizardGuard(requirements: GuardRequirements): GuardResult {
 		// Guard: Unknown step → redirect to first incomplete (Early Exit)
 		if (!currentStep) {
 			// Create validation context
-			const ctx: WizardValidationContext = { harnessId, providers, slots };
+			const ctx: WizardValidationContext = {
+				harnessId,
+				providers,
+				slotValues,
+			};
 
 			// Find first incomplete step
 			for (const step of steps) {
@@ -106,7 +110,7 @@ export function useWizardGuard(requirements: GuardRequirements): GuardResult {
 			const { isValid } = validateStep(step.id, {
 				harnessId,
 				providers,
-				slots,
+				slotValues,
 			});
 
 			// Guard: Prerequisite incomplete - redirect to first incomplete step (Fail Fast)
@@ -122,7 +126,7 @@ export function useWizardGuard(requirements: GuardRequirements): GuardResult {
 		hasProviders,
 		allSlotsComplete,
 		providers,
-		slots,
+		slotValues,
 		location.pathname,
 	]);
 

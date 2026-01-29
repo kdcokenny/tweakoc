@@ -1,38 +1,11 @@
 import { z } from "zod";
 import { getHarness } from "~/lib/harness-registry";
 
-// Credential pattern blocklist (defense-in-depth)
-const CREDENTIAL_PATTERNS = [
-	/^sk-[a-zA-Z0-9]+/, // OpenAI/Anthropic keys
-	/^glpat-[a-zA-Z0-9]+/, // GitLab tokens
-	/^AKIA[A-Z0-9]{16}/, // AWS access keys
-	/^Bearer\s+\S+/, // Bearer tokens
-	/^ghp_[a-zA-Z0-9]+/, // GitHub tokens
-	/^gho_[a-zA-Z0-9]+/, // GitHub OAuth tokens
-	/^github_pat_/, // GitHub PATs
-];
-
-function containsCredentialPattern(value: string): boolean {
-	return CREDENTIAL_PATTERNS.some((pattern) => pattern.test(value));
-}
-
-const safeString = (maxLength: number) =>
-	z
-		.string()
-		.min(1)
-		.max(maxLength)
-		.refine((val) => !containsCredentialPattern(val), {
-			message: "Value appears to contain a credential pattern",
-		});
-
 // Base profile request schema (without harness-specific validation)
 export const createProfileRequestSchema = z
 	.object({
 		harnessId: z.string().min(1),
-		providers: z.array(safeString(64)).min(1).max(20),
-		slots: z.record(z.string(), z.record(z.string(), z.unknown())),
-		selectedMcpServers: z.array(z.string()).optional().default([]),
-		options: z.record(z.string(), z.unknown()).optional(),
+		slotValues: z.record(z.string(), z.unknown()),
 	})
 	.strict();
 
@@ -56,8 +29,11 @@ export function validateProfileRequest(
 	// Validate all required slots are present
 	const harnessSlotIds = Object.keys(harness.slots);
 	for (const slotId of harnessSlotIds) {
-		const slot = request.slots[slotId];
-		if (!slot) {
+		const slotValue = request.slotValues[slotId];
+		const slotDef = harness.slots[slotId];
+
+		// Check if value is missing and no default is available
+		if (slotValue === undefined && slotDef?.default === undefined) {
 			return {
 				valid: false,
 				error: `Missing required slot: "${slotId}"`,
@@ -67,7 +43,7 @@ export function validateProfileRequest(
 
 	// Validate no extra slots
 	const validSlotIds = new Set(harnessSlotIds);
-	for (const slotId of Object.keys(request.slots)) {
+	for (const slotId of Object.keys(request.slotValues)) {
 		if (!validSlotIds.has(slotId)) {
 			return { valid: false, error: `Unknown slot: "${slotId}"` };
 		}

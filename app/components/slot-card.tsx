@@ -1,5 +1,4 @@
 import { ModelSlot } from "~/components/model-slot";
-import { PropertyControl } from "~/components/property-control";
 import {
 	Card,
 	CardContent,
@@ -7,38 +6,22 @@ import {
 	CardHeader,
 	CardTitle,
 } from "~/components/ui/card";
-import type { HarnessSlot } from "~/lib/harness-schema";
-import { isConfigurableProperty } from "~/lib/harness-schema";
+import type { SlotDefinition } from "~/lib/harness-schema";
 import { useWizardStore } from "~/lib/store/wizard-store";
 
 interface SlotCardProps {
 	slotId: string;
-	slot: HarnessSlot;
+	slot: SlotDefinition;
 	showErrors?: boolean;
 }
 
 export function SlotCard({ slotId, slot, showErrors = false }: SlotCardProps) {
-	const setSlotProperty = useWizardStore((state) => state.setSlotProperty);
-	const slotData = useWizardStore((state) => state.slots[slotId] ?? {});
+	const setSlotValue = useWizardStore((state) => state.setSlotValue);
+	const slotValue = useWizardStore((state) => state.slotValues[slotId]);
 
-	// Separate model property from other properties
-	const modelProperty = slot.properties.model;
-	const otherProperties = Object.entries(slot.properties).filter(
-		([key]) => key !== "model",
-	);
-
-	// Determine which properties are in advanced group
-	const advancedGroup = slot.advancedGroup;
-	const advancedPropSet = new Set(advancedGroup?.properties ?? []);
-
-	// Split configurable properties into basic and advanced
-	const basicProperties = otherProperties.filter(
-		([key, prop]) => isConfigurableProperty(prop) && !advancedPropSet.has(key),
-	);
-
-	const advancedProperties = otherProperties.filter(
-		([key, prop]) => isConfigurableProperty(prop) && advancedPropSet.has(key),
-	);
+	// For model slots, the value is the model ID string
+	const modelValue =
+		slot.type === "model" ? (slotValue as string | undefined) : undefined;
 
 	return (
 		<Card className="w-full">
@@ -49,65 +32,79 @@ export function SlotCard({ slotId, slot, showErrors = false }: SlotCardProps) {
 				)}
 			</CardHeader>
 			<CardContent className="space-y-6">
-				{/* Model selector (if configurable) */}
-				{modelProperty && isConfigurableProperty(modelProperty) && (
-					<ModelSlot
-						slotId={slotId}
-						showError={showErrors && !slotData.model}
-					/>
+				{/* Model selector (if this is a model slot) */}
+				{slot.type === "model" && (
+					<ModelSlot slotId={slotId} showError={showErrors && !modelValue} />
 				)}
 
-				{/* Basic configurable properties */}
-				{basicProperties.map(([propertyName, property]) => (
-					<PropertyControl
-						key={propertyName}
-						propertyName={propertyName}
-						property={property}
-						value={slotData[propertyName]}
-						onChange={(value) => setSlotProperty(slotId, propertyName, value)}
-					/>
-				))}
+				{/* For non-model slots, render value controls */}
+				{slot.type === "number" && (
+					<div className="flex flex-col gap-2">
+						<label htmlFor={slotId} className="text-sm font-medium">
+							Value
+						</label>
+						<input
+							id={slotId}
+							type="number"
+							value={(slotValue as number) ?? slot.default ?? 0}
+							onChange={(e) => setSlotValue(slotId, Number(e.target.value))}
+							min={slot.min}
+							max={slot.max}
+							step={slot.step}
+							className="border rounded px-3 py-2"
+						/>
+					</div>
+				)}
 
-				{/* Advanced group accordion */}
-				{advancedGroup &&
-					advancedProperties.length > 0 &&
-					(advancedGroup.collapsible ? (
-						<details
-							open={!advancedGroup.collapsed}
-							className="rounded-lg border border-zinc-200 dark:border-zinc-700"
+				{slot.type === "enum" && (
+					<div className="flex flex-col gap-2">
+						<label htmlFor={slotId} className="text-sm font-medium">
+							Value
+						</label>
+						<select
+							id={slotId}
+							value={(slotValue as string) ?? slot.default ?? ""}
+							onChange={(e) => setSlotValue(slotId, e.target.value)}
+							className="border rounded px-3 py-2"
 						>
-							<summary className="cursor-pointer px-4 py-2 font-medium text-sm text-zinc-700 dark:text-zinc-300">
-								{advancedGroup.label ?? "Advanced"}
-							</summary>
-							<div className="px-4 pb-4 pt-2 space-y-4">
-								{advancedProperties.map(([propertyName, property]) => (
-									<PropertyControl
-										key={propertyName}
-										propertyName={propertyName}
-										property={property}
-										value={slotData[propertyName]}
-										onChange={(value) =>
-											setSlotProperty(slotId, propertyName, value)
-										}
-									/>
-								))}
-							</div>
-						</details>
-					) : (
-						<div className="space-y-4">
-							{advancedProperties.map(([propertyName, property]) => (
-								<PropertyControl
-									key={propertyName}
-									propertyName={propertyName}
-									property={property}
-									value={slotData[propertyName]}
-									onChange={(value) =>
-										setSlotProperty(slotId, propertyName, value)
-									}
-								/>
+							{slot.options.map((opt) => (
+								<option key={opt} value={opt}>
+									{opt}
+								</option>
 							))}
-						</div>
-					))}
+						</select>
+					</div>
+				)}
+
+				{slot.type === "boolean" && (
+					<div className="flex items-center gap-2">
+						<input
+							id={slotId}
+							type="checkbox"
+							checked={(slotValue as boolean) ?? slot.default ?? false}
+							onChange={(e) => setSlotValue(slotId, e.target.checked)}
+							className="h-4 w-4"
+						/>
+						<label htmlFor={slotId} className="text-sm font-medium">
+							Enabled
+						</label>
+					</div>
+				)}
+
+				{slot.type === "text" && (
+					<div className="flex flex-col gap-2">
+						<label htmlFor={slotId} className="text-sm font-medium">
+							Value
+						</label>
+						<input
+							id={slotId}
+							type="text"
+							value={(slotValue as string) ?? slot.default ?? ""}
+							onChange={(e) => setSlotValue(slotId, e.target.value)}
+							className="border rounded px-3 py-2"
+						/>
+					</div>
+				)}
 			</CardContent>
 		</Card>
 	);

@@ -30,7 +30,7 @@ export default function RootLayout() {
 	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
 	const reviewStepCreating = useWizardStore((s) => s.reviewStepCreating);
 	const providers = useWizardStore((s) => s.providers);
-	const slots = useWizardStore((s) => s.slots);
+	const slotValues = useWizardStore((s) => s.slotValues);
 	const markStepAttempted = useWizardStore((s) => s.markStepAttempted);
 	const requestBannerFocus = useWizardStore((s) => s.requestBannerFocus);
 
@@ -69,7 +69,7 @@ export default function RootLayout() {
 		if (!currentStep) return;
 
 		const stepId = toStepId(currentStep);
-		const ctx: WizardValidationContext = { harnessId, providers, slots };
+		const ctx: WizardValidationContext = { harnessId, providers, slotValues };
 
 		// Mark attempted before validation (errors will now show)
 		markStepAttempted(stepId);
@@ -127,11 +127,11 @@ export default function RootLayout() {
 		const { isValid } = validateStep(currentStep.id, {
 			harnessId,
 			providers,
-			slots,
+			slotValues,
 		});
 
 		return isValid;
-	}, [currentStep, harnessId, providers, slots, reviewStepCreating]);
+	}, [currentStep, harnessId, providers, slotValues, reviewStepCreating]);
 
 	// Show step indicator only if we're not on the first page OR if harness is selected
 	const showStepIndicator = currentStepIndex > 0 || !!harnessId;

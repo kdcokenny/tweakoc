@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import {
-	selectAllSlots,
+	selectAllSlotValues,
 	selectHarnessId,
 	selectProviders,
 	useWizardStore,
@@ -28,7 +28,7 @@ export function WizardHeader({
 	const navigate = useNavigate();
 	const harnessId = useWizardStore(selectHarnessId);
 	const providers = useWizardStore(selectProviders);
-	const slots = useWizardStore(selectAllSlots);
+	const slotValues = useWizardStore(selectAllSlotValues);
 	const markStepAttempted = useWizardStore((s) => s.markStepAttempted);
 	const requestBannerFocus = useWizardStore((s) => s.requestBannerFocus);
 
@@ -45,7 +45,11 @@ export function WizardHeader({
 			return;
 		}
 
-		const ctx: WizardValidationContext = { harnessId, providers, slots };
+		const ctx: WizardValidationContext = {
+			harnessId,
+			providers,
+			slotValues,
+		};
 
 		// Forward: find first blocking step
 		for (let i = currentIndex; i < targetIndex; i++) {
@@ -66,7 +70,11 @@ export function WizardHeader({
 
 	// Compute which steps are complete and which are accessible
 	const stepStates = steps.map((step, index) => {
-		const { isValid } = validateStep(step.id, { harnessId, providers, slots });
+		const { isValid } = validateStep(step.id, {
+			harnessId,
+			providers,
+			slotValues,
+		});
 
 		// A step is accessible if:
 		// - It's a previous step (always accessible for backward nav)
@@ -79,7 +87,7 @@ export function WizardHeader({
 					const { isValid: prevValid } = validateStep(steps[i].id, {
 						harnessId,
 						providers,
-						slots,
+						slotValues,
 					});
 					return prevValid;
 				}));
