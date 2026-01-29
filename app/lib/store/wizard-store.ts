@@ -2,12 +2,19 @@ import { create } from "zustand";
 import { fetchProviders } from "~/lib/api/client";
 import type { ProviderSummary } from "~/lib/api/types";
 import { getHarness } from "~/lib/harness-registry";
+import { validateStep } from "~/lib/wizard-validation";
+import type { StepId } from "../wizard-step-id";
 
 interface CatalogState {
 	providersById: Record<string, ProviderSummary>;
 	providersOrder: string[]; // sorted alphabetically by name
 	status: "idle" | "loading" | "ready" | "error";
 	error?: string;
+}
+
+interface FocusBannerRequest {
+	id: number;
+	targetStepId: StepId;
 }
 
 interface WizardState {
@@ -30,6 +37,12 @@ interface WizardState {
 	// Review step handler and state
 	reviewStepHandler?: () => void | Promise<void>;
 	reviewStepCreating?: boolean;
+
+	// Submit-attempt validation state
+	attemptedByStepId: Partial<Record<StepId, true>>;
+	focusBannerRequest: FocusBannerRequest | null;
+	lastHandledFocusBannerRequestId: number;
+	focusBannerRequestCounter: number;
 }
 
 interface WizardActions {
@@ -83,6 +96,12 @@ interface WizardActions {
 	// Catalog loading
 	ensureProvidersLoaded: () => Promise<void>;
 
+	// Submit-attempt validation actions
+	markStepAttempted: (stepId: StepId) => void;
+	requestBannerFocus: (targetStepId: StepId) => void;
+	consumeFocusRequest: (requestId: number) => void;
+	clearAttempted: () => void;
+
 	// Reset
 	reset: () => void;
 }
@@ -97,6 +116,10 @@ const initialState: WizardState = {
 		providersOrder: [],
 		status: "idle",
 	},
+	attemptedByStepId: {},
+	focusBannerRequest: null,
+	lastHandledFocusBannerRequestId: 0,
+	focusBannerRequestCounter: 0,
 };
 
 // Module-level for stampede protection - NOT part of store state
@@ -342,6 +365,34 @@ export const useWizardStore = create<WizardState & WizardActions>(
 			return _catalogInFlight;
 		},
 
+		markStepAttempted: (stepId: StepId) =>
+			set((state) => ({
+				attemptedByStepId: { ...state.attemptedByStepId, [stepId]: true },
+			})),
+
+		requestBannerFocus: (targetStepId: StepId) =>
+			set((state) => {
+				const newId = state.focusBannerRequestCounter + 1;
+				return {
+					focusBannerRequestCounter: newId,
+					focusBannerRequest: { id: newId, targetStepId },
+				};
+			}),
+
+		consumeFocusRequest: (requestId: number) =>
+			set((state) => ({
+				lastHandledFocusBannerRequestId: Math.max(
+					state.lastHandledFocusBannerRequestId,
+					requestId,
+				),
+				focusBannerRequest:
+					state.focusBannerRequest?.id === requestId
+						? null
+						: state.focusBannerRequest,
+			})),
+
+		clearAttempted: () => set({ attemptedByStepId: {} }),
+
 		reset: () => {
 			set({
 				harnessId: undefined,
@@ -351,6 +402,10 @@ export const useWizardStore = create<WizardState & WizardActions>(
 				selectedMcpServers: [],
 				returnToStep: undefined,
 				banner: undefined,
+				attemptedByStepId: {},
+				focusBannerRequest: null,
+				lastHandledFocusBannerRequestId: 0,
+				focusBannerRequestCounter: 0,
 				// Note: catalog is NOT reset - it's cached data
 			});
 		},
@@ -427,3 +482,17 @@ export const selectIsMcpServerSelected =
 export const selectSlotProperty =
 	(slotId: string, propertyName: string) => (state: WizardState) =>
 		state.slots[slotId]?.[propertyName];
+
+// Validation selector - computes step validity on demand
+export const selectIsStepValid = (stepId: string) => (state: WizardState) => {
+	const { isValid } = validateStep(stepId, {
+		harnessId: state.harnessId,
+		providers: state.providers,
+		slots: state.slots,
+	});
+	return isValid;
+};
+
+// Submit-attempt validation selector
+export const selectIsStepAttempted = (stepId: StepId) => (state: WizardState) =>
+	!!state.attemptedByStepId[stepId];

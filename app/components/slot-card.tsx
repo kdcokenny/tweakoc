@@ -14,9 +14,10 @@ import { useWizardStore } from "~/lib/store/wizard-store";
 interface SlotCardProps {
 	slotId: string;
 	slot: HarnessSlot;
+	showErrors?: boolean;
 }
 
-export function SlotCard({ slotId, slot }: SlotCardProps) {
+export function SlotCard({ slotId, slot, showErrors = false }: SlotCardProps) {
 	const setSlotProperty = useWizardStore((state) => state.setSlotProperty);
 	const slotData = useWizardStore((state) => state.slots[slotId] ?? {});
 
@@ -50,7 +51,10 @@ export function SlotCard({ slotId, slot }: SlotCardProps) {
 			<CardContent className="space-y-6">
 				{/* Model selector (if configurable) */}
 				{modelProperty && isConfigurableProperty(modelProperty) && (
-					<ModelSlot slotId={slotId} />
+					<ModelSlot
+						slotId={slotId}
+						showError={showErrors && !slotData.model}
+					/>
 				)}
 
 				{/* Basic configurable properties */}

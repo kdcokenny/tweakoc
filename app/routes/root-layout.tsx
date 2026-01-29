@@ -14,6 +14,11 @@ import {
 	getStepFromPath,
 	getWizardSteps,
 } from "~/lib/wizard-config";
+import { toStepId } from "~/lib/wizard-step-id";
+import {
+	validateStep,
+	type WizardValidationContext,
+} from "~/lib/wizard-validation";
 
 export default function RootLayout() {
 	const location = useLocation();
@@ -24,6 +29,10 @@ export default function RootLayout() {
 	const returnToStep = useWizardStore(selectReturnToStep);
 	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
 	const reviewStepCreating = useWizardStore((s) => s.reviewStepCreating);
+	const providers = useWizardStore((s) => s.providers);
+	const slots = useWizardStore((s) => s.slots);
+	const markStepAttempted = useWizardStore((s) => s.markStepAttempted);
+	const requestBannerFocus = useWizardStore((s) => s.requestBannerFocus);
 
 	// Preload provider catalog for deep links
 	const ensureProvidersLoaded = useWizardStore((s) => s.ensureProvidersLoaded);
@@ -36,6 +45,7 @@ export default function RootLayout() {
 	const steps = getWizardSteps(harnessId);
 	const currentStep = getStepFromPath(steps, location.pathname);
 	const currentStepIndex = currentStep ? steps.indexOf(currentStep) : -1;
+	const currentStepId = currentStep ? toStepId(currentStep) : null;
 
 	// Direction tracking (for animations - based on step index)
 	const prevIndexRef = useRef<number | null>(null);
@@ -55,8 +65,24 @@ export default function RootLayout() {
 
 	// Navigation handlers
 	const handleNext = () => {
+		// Guard: No current step (Early Exit)
+		if (!currentStep) return;
+
+		const stepId = toStepId(currentStep);
+		const ctx: WizardValidationContext = { harnessId, providers, slots };
+
+		// Mark attempted before validation (errors will now show)
+		markStepAttempted(stepId);
+
+		const { isValid } = validateStep(currentStep.id, ctx);
+
+		if (!isValid) {
+			requestBannerFocus(stepId);
+			return; // Stay on current step, errors now visible
+		}
+
 		// Special case: review step - call the registered handler
-		if (currentStep?.id === "review") {
+		if (currentStep.id === "review") {
 			const handler = useWizardStore.getState().reviewStepHandler;
 			if (handler) {
 				void handler();
@@ -72,9 +98,7 @@ export default function RootLayout() {
 			return;
 		}
 
-		const nextStep = currentStep
-			? getNextStep(steps, currentStep.id)
-			: undefined;
+		const nextStep = getNextStep(steps, currentStep.id);
 		if (nextStep) navigate(nextStep.path);
 	};
 
@@ -91,13 +115,23 @@ export default function RootLayout() {
 	// Can go back? (not on step 1, and not while creating)
 	const canGoBack = currentStepIndex > 0 && !reviewStepCreating;
 
-	// Can go next? (harness step: only if harness selected; review step: not while creating)
-	const canGoNext =
-		currentStep?.id === "harness"
-			? !!harnessId
-			: currentStep?.id === "review"
-				? !reviewStepCreating
-				: true;
+	// Can go next? Use validation utility for all steps
+	const canGoNext = useMemo(() => {
+		if (!currentStep) return false;
+
+		// Review step has special handling for creation state
+		if (currentStep.id === "review") {
+			return !reviewStepCreating;
+		}
+
+		const { isValid } = validateStep(currentStep.id, {
+			harnessId,
+			providers,
+			slots,
+		});
+
+		return isValid;
+	}, [currentStep, harnessId, providers, slots, reviewStepCreating]);
 
 	// Show step indicator only if we're not on the first page OR if harness is selected
 	const showStepIndicator = currentStepIndex > 0 || !!harnessId;
@@ -106,6 +140,7 @@ export default function RootLayout() {
 		<WizardFrame
 			currentStep={currentStepIndex + 1}
 			totalSteps={totalSteps}
+			currentStepId={currentStepId}
 			nextLabel={nextLabel}
 			onNext={handleNext}
 			onBack={handleBack}
@@ -113,6 +148,7 @@ export default function RootLayout() {
 			canGoBack={canGoBack}
 			direction={direction}
 			showStepIndicator={showStepIndicator}
+			isCreating={reviewStepCreating}
 		>
 			<Outlet />
 		</WizardFrame>

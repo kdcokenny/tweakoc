@@ -1,3 +1,4 @@
+import type { StepId } from "~/lib/wizard-step-id";
 import { WizardContent } from "./wizard-content";
 import { WizardHeader } from "./wizard-header";
 import { WizardNav } from "./wizard-nav";
@@ -13,6 +14,8 @@ interface WizardFrameProps {
 	canGoBack: boolean;
 	direction: "forward" | "back";
 	showStepIndicator?: boolean;
+	isCreating?: boolean; // For review step creating state
+	currentStepId: StepId | null; // NEW: for focus scoping
 }
 
 export function WizardFrame({
@@ -26,16 +29,25 @@ export function WizardFrame({
 	canGoBack,
 	direction,
 	showStepIndicator = true,
+	isCreating,
+	currentStepId,
 }: WizardFrameProps) {
 	return (
 		<div className="flex h-dvh flex-col bg-background">
+			{/* ARIA live region for step announcements */}
+			<div aria-live="polite" aria-atomic="true" className="sr-only">
+				Step {currentStep} of {totalSteps}
+			</div>
+
 			<WizardHeader
 				currentStep={currentStep}
 				totalSteps={totalSteps}
 				showStepIndicator={showStepIndicator}
 			/>
 
-			<WizardContent direction={direction}>{children}</WizardContent>
+			<WizardContent direction={direction} currentStepId={currentStepId}>
+				{children}
+			</WizardContent>
 
 			<WizardNav
 				nextLabel={nextLabel}
@@ -43,6 +55,7 @@ export function WizardFrame({
 				onBack={onBack}
 				canGoNext={canGoNext}
 				canGoBack={canGoBack}
+				isCreating={isCreating}
 			/>
 		</div>
 	);

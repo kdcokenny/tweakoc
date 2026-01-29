@@ -22,9 +22,10 @@ import { ModelPicker } from "./model-picker";
 
 interface ModelSlotProps {
 	slotId: string;
+	showError?: boolean;
 }
 
-export function ModelSlot({ slotId }: ModelSlotProps) {
+export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 	const providers = useWizardStore(selectProviders);
 	const defaultProvider = useWizardStore(selectDefaultProvider);
 	const slotData = useWizardStore((s) => s.slots[slotId]);
@@ -185,6 +186,10 @@ export function ModelSlot({ slotId }: ModelSlotProps) {
 					<p className="text-sm text-muted-foreground">
 						Select a provider first
 					</p>
+				)}
+				{/* Inline error when model required but not selected */}
+				{showError && !modelValue && (
+					<p className="text-sm text-destructive">Please select a model</p>
 				)}
 			</div>
 
