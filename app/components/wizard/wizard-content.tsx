@@ -60,7 +60,7 @@ export function WizardContent({
 				direction === "back" && "motion-safe:animate-slide-right",
 			)}
 		>
-			<div className="max-w-2xl mx-auto px-6">{children}</div>
+			<div className="max-w-2xl mx-auto px-4 md:px-6">{children}</div>
 		</main>
 	);
 }

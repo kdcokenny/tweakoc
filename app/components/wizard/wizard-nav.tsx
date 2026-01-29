@@ -21,7 +21,7 @@ export function WizardNav({
 }: WizardNavProps) {
 	return (
 		<footer className="shrink-0 border-t py-4">
-			<div className="max-w-2xl mx-auto px-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+			<div className="max-w-2xl mx-auto px-4 md:px-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
 				{/* Back button - hidden on step 1 */}
 				{canGoBack ? (
 					<Button variant="outline" onClick={onBack} type="button">
