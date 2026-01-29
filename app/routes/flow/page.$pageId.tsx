@@ -41,7 +41,7 @@ export default function FlowPage() {
 	// Guard clause: invalid harness or pageId (Early Exit)
 	if (!harness || !pageId) {
 		return (
-			<div className="flex flex-col gap-6 p-6">
+			<div className="flex flex-col gap-6 py-6">
 				<p className="text-muted-foreground">Invalid page configuration.</p>
 			</div>
 		);
@@ -54,7 +54,7 @@ export default function FlowPage() {
 	// Guard clause: page not found (Early Exit)
 	if (!currentPage) {
 		return (
-			<div className="flex flex-col gap-6 p-6">
+			<div className="flex flex-col gap-6 py-6">
 				<p className="text-muted-foreground">Page not found: {pageId}</p>
 			</div>
 		);
