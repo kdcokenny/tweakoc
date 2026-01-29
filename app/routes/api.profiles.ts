@@ -6,6 +6,7 @@ import { getSubmissionWithDefaults } from "~/lib/api/ref-resolver";
 import { fetchRegistryFilesWithTimeout } from "~/lib/api/registry-client";
 import { parseCreateProfileRequest } from "~/lib/api/schemas";
 import { createErrorResponse, createJsonResponse } from "~/lib/api/types";
+import { SITE_ORIGIN } from "~/lib/config";
 import { getHarness } from "~/lib/harness-registry";
 import type { SlotDefinition } from "~/lib/harness-schema";
 import type { Route } from "./+types/api.profiles";
@@ -213,10 +214,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 		}
 
 		// Fetch from registry (single source of truth)
-		const registryUrl = context.cloudflare.env.REGISTRY_URL;
 		try {
 			const registryFiles = await fetchRegistryFilesWithTimeout(
-				registryUrl,
+				SITE_ORIGIN,
 				componentId,
 			);
 			return createJsonResponse(

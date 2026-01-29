@@ -19,6 +19,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import type { GeneratedFile } from "~/lib/api/types";
+import { SITE_ORIGIN } from "~/lib/config";
 import { getHarness } from "~/lib/harness-registry";
 import { selectHarnessId, useWizardStore } from "~/lib/store/wizard-store";
 
@@ -78,8 +79,7 @@ export function CreateProfileModal({
 
 	// Commands
 	const primaryCommand = `ocx profile add ${profileName} --from tweak/${finalComponentId}`;
-	const registryCommand =
-		"ocx registry add https://tweak.kdco.dev/r --name tweak --global";
+	const registryCommand = `ocx registry add ${SITE_ORIGIN}/r --name tweak --global`;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>

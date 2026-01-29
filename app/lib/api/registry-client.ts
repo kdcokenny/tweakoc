@@ -25,7 +25,7 @@ const PackumentSchema = z.object({
  * Fetch files from the registry for a given component.
  * Uses the same endpoint OCX uses when installing profiles.
  *
- * @param registryUrl - Origin URL (e.g., "https://tweak.kdco.dev")
+ * @param registryUrl - Origin URL (e.g., "https://tweakoc.com")
  * @param componentId - Component ID (e.g., "p-abc123")
  * @param signal - Optional AbortSignal for timeout
  * @returns Array of generated files

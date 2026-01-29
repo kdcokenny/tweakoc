@@ -1,5 +1,6 @@
 import { isValidComponentId } from "~/lib/api/id-generator";
 import { getProfile } from "~/lib/api/profile-store";
+import { SITE_ORIGIN } from "~/lib/config";
 import type { Route } from "./+types/r.components.$";
 
 // Immutable cache headers for registry content
@@ -54,7 +55,7 @@ async function handlePackument(
 			"1.0.0": {
 				name: componentId,
 				type: "ocx:profile",
-				description: "Generated profile from tweak.kdco.dev",
+				description: `Generated profile from ${new URL(SITE_ORIGIN).hostname}`,
 				files,
 				dependencies: [],
 			},

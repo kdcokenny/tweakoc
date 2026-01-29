@@ -6,9 +6,6 @@
 	"assets": {
 		"directory": "./build/client"
 	},
-	"vars": {
-		"REGISTRY_URL": "http://localhost:5173"
-	},
 	"kv_namespaces": [
 		{
 			"binding": "PROFILES_KV",
