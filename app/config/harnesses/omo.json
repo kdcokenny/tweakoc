@@ -1,5 +1,5 @@
 {
-	"schemaVersion": 2,
+	"schemaVersion": 1,
 	"id": "omo",
 	"name": "OhMyOpenCode",
 	"description": "Intelligent agent orchestration with category-based model selection",

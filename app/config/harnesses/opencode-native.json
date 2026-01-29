@@ -1,0 +1,175 @@
+{
+	"schemaVersion": 1,
+	"id": "opencode-native",
+	"name": "OpenCode Native",
+	"description": "Configure OpenCode's built-in agents and experimental settings",
+	"slots": {
+		"build_model": {
+			"type": "model",
+			"label": "Build Model"
+		},
+		"build_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.3,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"plan_model": {
+			"type": "model",
+			"label": "Plan Model"
+		},
+		"plan_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.1,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"general_model": {
+			"type": "model",
+			"label": "General Model"
+		},
+		"general_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.3,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"explore_model": {
+			"type": "model",
+			"label": "Explore Model"
+		},
+		"explore_temperature": {
+			"type": "number",
+			"label": "Temperature",
+			"default": 0.2,
+			"min": 0,
+			"max": 2,
+			"step": 0.1
+		},
+		"build_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "medium",
+			"options": ["low", "medium", "high"]
+		},
+		"plan_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "high",
+			"options": ["low", "medium", "high"]
+		},
+		"general_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "medium",
+			"options": ["low", "medium", "high"]
+		},
+		"explore_reasoning": {
+			"type": "enum",
+			"label": "Reasoning Effort",
+			"default": "low",
+			"options": ["low", "medium", "high"]
+		},
+		"continue_on_deny": {
+			"type": "boolean",
+			"label": "Continue on Deny",
+			"default": false,
+			"description": "Continue agent loop when tool is denied"
+		},
+		"mcp_timeout": {
+			"type": "number",
+			"label": "MCP Timeout (ms)",
+			"default": 10000,
+			"min": 1000,
+			"max": 60000,
+			"step": 1000
+		},
+		"enable_otel": {
+			"type": "boolean",
+			"label": "OpenTelemetry",
+			"default": false,
+			"description": "Enable OpenTelemetry tracing"
+		}
+	},
+	"flow": [
+		{
+			"id": "agents",
+			"label": "Agents",
+			"sections": [
+				{
+					"id": "build",
+					"label": "Build",
+					"slots": ["build_model"],
+					"advanced": ["build_temperature", "build_reasoning"]
+				},
+				{
+					"id": "plan",
+					"label": "Plan",
+					"slots": ["plan_model"],
+					"advanced": ["plan_temperature", "plan_reasoning"]
+				},
+				{
+					"id": "general",
+					"label": "General",
+					"slots": ["general_model"],
+					"advanced": ["general_temperature", "general_reasoning"]
+				},
+				{
+					"id": "explore",
+					"label": "Explore",
+					"slots": ["explore_model"],
+					"advanced": ["explore_temperature", "explore_reasoning"]
+				},
+				{
+					"id": "experimental",
+					"label": "Experimental",
+					"slots": [],
+					"advanced": ["continue_on_deny", "mcp_timeout", "enable_otel"]
+				}
+			]
+		}
+	],
+	"outputs": [{ "path": "opencode.jsonc", "label": "OpenCode Config" }],
+
+	"templates": [
+		{
+			"output": "opencode.jsonc",
+			"template": {
+				"$schema": "https://opencode.ai/config.json",
+				"agent": {
+					"build": {
+						"model": { "$ref": "#/slots/build_model" },
+						"temperature": { "$ref": "#/slots/build_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/build_reasoning" }
+					},
+					"plan": {
+						"model": { "$ref": "#/slots/plan_model" },
+						"temperature": { "$ref": "#/slots/plan_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/plan_reasoning" }
+					},
+					"general": {
+						"model": { "$ref": "#/slots/general_model" },
+						"temperature": { "$ref": "#/slots/general_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/general_reasoning" }
+					},
+					"explore": {
+						"model": { "$ref": "#/slots/explore_model" },
+						"temperature": { "$ref": "#/slots/explore_temperature" },
+						"reasoningEffort": { "$ref": "#/slots/explore_reasoning" }
+					}
+				},
+				"experimental": {
+					"continue_loop_on_deny": { "$ref": "#/slots/continue_on_deny" },
+					"mcp_timeout": { "$ref": "#/slots/mcp_timeout" },
+					"openTelemetry": { "$ref": "#/slots/enable_otel" }
+				}
+			}
+		}
+	]
+}

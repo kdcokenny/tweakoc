@@ -1,4 +1,5 @@
 import kdcoWorkspaceRaw from "~/config/harnesses/kdco-workspace.json";
+import rawOpencodeNative from "~/config/harnesses/opencode-native.json";
 
 // Import harness configs
 // TODO: Migrate omo.json to new schema format (Record-based slots, flow field)
@@ -9,13 +10,17 @@ import { type HarnessConfig, parseHarnessConfig } from "./harness-schema";
  * List of all harness IDs in the registry.
  * Used for validation and iteration.
  */
-export const HARNESS_IDS = ["kdco-workspace"] as const;
+export const HARNESS_IDS = ["kdco-workspace", "opencode-native"] as const;
 
-// Parse and validate at load time (fail fast)
+// Parse at load time; full validation via `bun run harness:validate`
 // const omo = parseHarnessConfig(omoRaw, "omo.json");
 const kdcoWorkspace = parseHarnessConfig(
 	kdcoWorkspaceRaw,
 	"kdco-workspace.json",
+);
+const opencodeNative = parseHarnessConfig(
+	rawOpencodeNative,
+	"opencode-native.json",
 );
 
 /**
@@ -28,6 +33,7 @@ const kdcoWorkspace = parseHarnessConfig(
 export const HARNESSES: Record<string, HarnessConfig> = {
 	// omo,
 	"kdco-workspace": kdcoWorkspace,
+	"opencode-native": opencodeNative,
 };
 
 /**

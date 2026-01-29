@@ -1,5 +1,5 @@
 {
-	"schemaVersion": 2,
+	"schemaVersion": 1,
 	"id": "kdco-workspace",
 	"name": "KDCO Workspace",
 	"description": "Full-featured development environment with specialized agents",

@@ -17,7 +17,7 @@ const VALID_ID_REGEX = /^[a-z0-9-]+$/;
 
 // Expected harness IDs (must match HARNESS_IDS in harness-registry.ts)
 // Note: omo.json needs migration to new schema (Record-based slots, flow field)
-const EXPECTED_HARNESS_IDS = ["kdco-workspace"] as const;
+const EXPECTED_HARNESS_IDS = ["kdco-workspace", "opencode-native"] as const;
 
 interface ValidationError {
 	type: "error";
