@@ -2,6 +2,13 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "~/components/ui/select";
 import { generateSetupInstructions } from "~/lib/api/provider-meta";
 import type { ProviderSummary } from "~/lib/api/types";
 import {
@@ -30,6 +37,9 @@ const POPULAR_PROVIDER_IDS = [
 
 export function ProviderList() {
 	const [search, setSearch] = useState("");
+	const [authFilter, setAuthFilter] = useState<"all" | "oauth" | "api_key">(
+		"all",
+	);
 
 	const selectedProviders = useWizardStore(selectProviders);
 	const toggleProvider = useWizardStore((s) => s.toggleProvider);
@@ -68,12 +78,24 @@ export function ProviderList() {
 
 	// Filter providers by search
 	const filteredProviders = useMemo(() => {
-		if (!search.trim()) return providers;
-		const q = search.toLowerCase();
-		return providers.filter(
-			(p) => p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q),
-		);
-	}, [search, providers]);
+		let result = providers;
+
+		// Apply auth type filter
+		if (authFilter !== "all") {
+			result = result.filter((p) => p.authType === authFilter);
+		}
+
+		// Then apply search filter
+		if (search.trim()) {
+			const q = search.toLowerCase();
+			result = result.filter(
+				(p) =>
+					p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q),
+			);
+		}
+
+		return result;
+	}, [search, authFilter, providers]);
 
 	// Quick select popular providers
 	const handlePopularClick = (providerId: string) => {
@@ -108,14 +130,35 @@ export function ProviderList() {
 	return (
 		<div className="flex flex-col gap-4">
 			{/* Search */}
-			<div className="relative">
-				<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-				<Input
-					placeholder="Search providers..."
-					value={search}
-					onChange={(e) => setSearch(e.target.value)}
-					className="pl-9"
-				/>
+			<div className="flex gap-3 items-center">
+				<div className="relative flex-1">
+					<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					<Input
+						placeholder="Search providers..."
+						value={search}
+						onChange={(e) => setSearch(e.target.value)}
+						className="pl-9"
+					/>
+				</div>
+				<Select
+					value={authFilter}
+					onValueChange={(value) =>
+						setAuthFilter(value as "all" | "oauth" | "api_key")
+					}
+				>
+					<SelectTrigger className="w-[100px]">
+						<SelectValue>
+							{authFilter === "all" && "All"}
+							{authFilter === "oauth" && "OAuth"}
+							{authFilter === "api_key" && "API Key"}
+						</SelectValue>
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">All</SelectItem>
+						<SelectItem value="oauth">OAuth</SelectItem>
+						<SelectItem value="api_key">API Key</SelectItem>
+					</SelectContent>
+				</Select>
 			</div>
 
 			{/* Popular pills */}
@@ -151,7 +194,11 @@ export function ProviderList() {
 				))}
 				{filteredProviders.length === 0 && (
 					<p className="text-center text-muted-foreground py-8">
-						No providers found matching "{search}"
+						{authFilter !== "all" && search.trim()
+							? `No ${authFilter === "oauth" ? "OAuth" : "API Key"} providers found matching "${search}"`
+							: authFilter !== "all"
+								? `No ${authFilter === "oauth" ? "OAuth" : "API Key"} providers available`
+								: `No providers found matching "${search}"`}
 					</p>
 				)}
 			</div>
