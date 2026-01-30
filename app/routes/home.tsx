@@ -1,8 +1,19 @@
 import { useNavigate } from "react-router";
 import { Card } from "~/components/ui/card";
+import { getGitHubStars } from "~/lib/api/github-stars-service";
 import { getAllHarnesses } from "~/lib/harness-registry";
 import { ROUTES } from "~/lib/routes";
 import { useWizardStore } from "~/lib/store/wizard-store";
+import type { Route } from "./+types/home";
+
+export const id = "home";
+
+export async function loader({ context }: Route.LoaderArgs) {
+	const kv = context.cloudflare.env.PROFILES_KV;
+	// Optional: const token = (context.cloudflare.env as Record<string, unknown>).GITHUB_TOKEN as string | undefined;
+	const githubStars = await getGitHubStars(kv);
+	return { githubStars };
+}
 
 export function meta() {
 	return [
@@ -11,7 +22,7 @@ export function meta() {
 	];
 }
 
-export default function HarnessSelection() {
+export default function HarnessSelection(_props: Route.ComponentProps) {
 	const navigate = useNavigate();
 	const setHarness = useWizardStore((s) => s.setHarness);
 	const currentHarnessId = useWizardStore((s) => s.harnessId);

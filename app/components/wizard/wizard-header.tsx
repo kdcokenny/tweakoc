@@ -1,5 +1,11 @@
 import { Check } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import {
+	Link,
+	useLocation,
+	useNavigate,
+	useRouteLoaderData,
+} from "react-router";
+import { GitHubStars } from "~/components/github-stars";
 import {
 	selectAllSlotValues,
 	selectHarnessId,
@@ -13,6 +19,7 @@ import {
 	validateStep,
 	type WizardValidationContext,
 } from "~/lib/wizard-validation";
+import type { loader as homeLoader } from "~/routes/home";
 
 interface WizardHeaderProps {
 	currentStep: number;
@@ -26,6 +33,9 @@ export function WizardHeader({
 	showStepIndicator = true,
 }: WizardHeaderProps) {
 	const navigate = useNavigate();
+	const location = useLocation();
+	const homeData = useRouteLoaderData<typeof homeLoader>("home");
+	const isHomepage = location.pathname === "/";
 	const harnessId = useWizardStore(selectHarnessId);
 	const providers = useWizardStore(selectProviders);
 	const slotValues = useWizardStore(selectAllSlotValues);
@@ -173,6 +183,9 @@ export function WizardHeader({
 					Step {currentStep} of {totalSteps}
 				</div>
 			)}
+
+			{/* GitHub stars - homepage only */}
+			{isHomepage && homeData && <GitHubStars stars={homeData.githubStars} />}
 		</header>
 	);
 }

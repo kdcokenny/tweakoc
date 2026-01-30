@@ -9,7 +9,7 @@ export default [
 	// Root layout wraps all wizard routes
 	layout("routes/root-layout.tsx", [
 		// Step 1: Harness selection
-		index("routes/home.tsx"),
+		index("routes/home.tsx", { id: "home" }),
 
 		// Deep link handler
 		route("h/:harnessId", "routes/harness.tsx"),
