@@ -1,13 +1,7 @@
 import { Checkbox } from "~/components/ui/checkbox";
 import { Field, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "~/components/ui/select";
+import { SimpleSelect } from "~/components/ui/simple-select";
 import { Slider } from "~/components/ui/slider";
 import type { SlotDefinition } from "~/lib/harness-schema";
 import { useWizardStore } from "~/lib/store/wizard-store";
@@ -56,24 +50,18 @@ export function SlotControl({
 
 	// Guard clause: handle enum slots
 	if (slotDef.type === "enum") {
+		// For simple string options, map to { value, label } format
+		const options = slotDef.options.map((opt) => ({ value: opt, label: opt }));
+
 		return (
 			<Field>
 				<FieldLabel htmlFor={slotId}>{slotDef.label}</FieldLabel>
-				<Select
+				<SimpleSelect
+					options={options}
 					value={(value as string) ?? slotDef.default ?? ""}
-					onValueChange={(v) => setSlotValue(slotId, v)}
-				>
-					<SelectTrigger id={slotId}>
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{slotDef.options.map((opt) => (
-							<SelectItem key={opt} value={opt}>
-								{opt}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+					onChange={(v) => setSlotValue(slotId, v)}
+					id={slotId}
+				/>
 			</Field>
 		);
 	}

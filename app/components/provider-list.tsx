@@ -2,13 +2,7 @@ import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "~/components/ui/select";
+import { SimpleSelect } from "~/components/ui/simple-select";
 import { generateSetupInstructions } from "~/lib/api/provider-meta";
 import type { ProviderSummary } from "~/lib/api/types";
 import {
@@ -34,6 +28,12 @@ const POPULAR_PROVIDER_IDS = [
 	"openrouter",
 	"groq",
 ];
+
+const AUTH_FILTER_OPTIONS = [
+	{ value: "all", label: "All" },
+	{ value: "oauth", label: "OAuth" },
+	{ value: "api_key", label: "API Key" },
+] as const;
 
 export function ProviderList() {
 	const [search, setSearch] = useState("");
@@ -140,25 +140,14 @@ export function ProviderList() {
 						className="pl-9"
 					/>
 				</div>
-				<Select
+				<SimpleSelect
+					options={[...AUTH_FILTER_OPTIONS]}
 					value={authFilter}
-					onValueChange={(value) =>
+					onChange={(value) =>
 						setAuthFilter(value as "all" | "oauth" | "api_key")
 					}
-				>
-					<SelectTrigger className="w-[100px]">
-						<SelectValue>
-							{authFilter === "all" && "All"}
-							{authFilter === "oauth" && "OAuth"}
-							{authFilter === "api_key" && "API Key"}
-						</SelectValue>
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">All</SelectItem>
-						<SelectItem value="oauth">OAuth</SelectItem>
-						<SelectItem value="api_key">API Key</SelectItem>
-					</SelectContent>
-				</Select>
+					triggerClassName="w-[100px]"
+				/>
 			</div>
 
 			{/* Popular pills */}

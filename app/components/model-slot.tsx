@@ -2,13 +2,7 @@ import { useEffect, useMemo } from "react";
 import { href, Link, useParams } from "react-router";
 import { Badge } from "~/components/ui/badge";
 import { Field, FieldLabel } from "~/components/ui/field";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "~/components/ui/select";
+import { SimpleSelect } from "~/components/ui/simple-select";
 import { createAPIModelLoader } from "~/lib/api/client";
 import type { ProviderSummary } from "~/lib/api/types";
 import {
@@ -71,6 +65,16 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 			.sort((a, b) => a.name.localeCompare(b.name));
 	}, [providers, providersById]);
 
+	const providerOptions = useMemo(
+		() =>
+			sortedProviders.map((provider) => ({
+				value: provider.id,
+				label: provider.name,
+				disabled: provider.isUnknown,
+			})),
+		[sortedProviders],
+	);
+
 	const handleProviderChange = (newProviderId: string | null) => {
 		if (!newProviderId) return;
 		// Clear the model when provider changes
@@ -114,36 +118,21 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 			{showProviderDropdown ? (
 				<Field>
 					<FieldLabel htmlFor={`${slotId}-provider`}>Provider</FieldLabel>
-					<Select value={providerId} onValueChange={handleProviderChange}>
-						<SelectTrigger id={`${slotId}-provider`}>
-							<SelectValue>
-								{providerId
-									? (providersById[providerId]?.name ?? providerId)
-									: "Select provider"}
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent>
-							{sortedProviders.map((provider) => (
-								<SelectItem
-									key={provider.id}
-									value={provider.id}
-									disabled={provider.isUnknown}
-									className={
-										provider.isUnknown ? "text-muted-foreground" : undefined
-									}
-								>
-									<div className="flex items-center gap-2">
-										<span>{provider.name}</span>
-										{provider.isUnknown && (
-											<span className="text-xs text-amber-500">
-												(unavailable)
-											</span>
-										)}
-									</div>
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<SimpleSelect
+						options={providerOptions}
+						value={providerId}
+						onChange={handleProviderChange}
+						placeholder="Select provider"
+						id={`${slotId}-provider`}
+						renderOption={(option) => (
+							<div className="flex items-center gap-2">
+								<span>{option.label}</span>
+								{option.disabled && (
+									<span className="text-xs text-amber-500">(unavailable)</span>
+								)}
+							</div>
+						)}
+					/>
 				</Field>
 			) : (
 				<div className="flex items-center gap-2">

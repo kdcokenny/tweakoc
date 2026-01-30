@@ -1,12 +1,6 @@
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "~/components/ui/select";
+import { SimpleSelect } from "~/components/ui/simple-select";
 import { Slider } from "~/components/ui/slider";
 import type { SlotProperty } from "~/lib/harness-schema";
 import { isConfigurableProperty } from "~/lib/harness-schema";
@@ -84,19 +78,21 @@ export function PropertyControl({
 					typeof value === "string"
 						? value
 						: (property.default ?? property.options[0]);
+
+				// Map string options to { value, label } format
+				const options = property.options.map((opt) => ({
+					value: opt,
+					label: opt,
+				}));
+
 				return (
-					<Select value={enumValue} onValueChange={(v) => onChange(v)}>
-						<SelectTrigger className="w-full">
-							<SelectValue placeholder={`Select ${propertyName}`} />
-						</SelectTrigger>
-						<SelectContent>
-							{property.options.map((option) => (
-								<SelectItem key={option} value={option}>
-									{option}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<SimpleSelect
+						options={options}
+						value={enumValue}
+						onChange={(v) => onChange(v)}
+						placeholder={`Select ${propertyName}`}
+						triggerClassName="w-full"
+					/>
 				);
 			}
 
