@@ -12,6 +12,10 @@ import "@fontsource/geist-sans";
 import "@fontsource/geist-mono";
 import "./app.css";
 
+export const links: Route.LinksFunction = () => [
+	{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+];
+
 export function Layout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en">
