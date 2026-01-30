@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router";
+import { Outlet, useLocation, useNavigate, useParams } from "react-router";
 import { WizardFrame } from "~/components/wizard/wizard-frame";
-import {
-	selectHarnessId,
-	selectReturnToStep,
-	useWizardStore,
-} from "~/lib/store/wizard-store";
+import { selectReturnToStep, useWizardStore } from "~/lib/store/wizard-store";
 import {
 	getMaxSteps,
 	getNextLabel,
@@ -24,8 +20,8 @@ export default function RootLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
 
-	// Get harness from store
-	const harnessId = useWizardStore(selectHarnessId);
+	// Get harness from URL params (source of truth)
+	const { harnessId } = useParams<{ harnessId?: string }>();
 	const returnToStep = useWizardStore(selectReturnToStep);
 	const setReturnToStep = useWizardStore((s) => s.setReturnToStep);
 	const reviewStepCreating = useWizardStore((s) => s.reviewStepCreating);

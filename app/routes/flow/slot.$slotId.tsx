@@ -1,13 +1,34 @@
-import { Navigate, useParams } from "react-router";
-import { getHarness } from "~/lib/harness-registry";
-import { useWizardStore } from "~/lib/store/wizard-store";
+import {
+	Navigate,
+	redirect,
+	useLoaderData,
+	useRouteLoaderData,
+} from "react-router";
+import { requireHarness } from "~/lib/guards";
+import { ROUTES } from "~/lib/routes";
+import type { Route } from "./+types/slot.$slotId";
+import type { loader as flowLayoutLoader } from "./layout";
+
+export async function loader({ params }: Route.LoaderArgs) {
+	const harness = requireHarness(params.harnessId);
+	const { slotId } = params;
+
+	// Validate slotId exists in harness
+	if (!slotId || !harness.slots[slotId]) {
+		// Invalid slot, redirect to providers
+		return redirect(ROUTES.flow.providers(harness.id));
+	}
+
+	return { slotId };
+}
 
 export default function SlotRedirect() {
-	const { slotId } = useParams<{ slotId: string }>();
-	const harnessId = useWizardStore((state) => state.harnessId);
-	const harness = harnessId ? getHarness(harnessId) : null;
+	const loaderData = useLoaderData<typeof loader>();
+	const layoutData = useRouteLoaderData<typeof flowLayoutLoader>("flow-layout");
+	const { slotId } = loaderData;
+	const harness = layoutData?.harness;
 
-	if (!harness || !slotId) {
+	if (!harness) {
 		return <Navigate to="/flow" replace />;
 	}
 

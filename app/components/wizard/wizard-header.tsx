@@ -3,6 +3,7 @@ import {
 	Link,
 	useLocation,
 	useNavigate,
+	useParams,
 	useRouteLoaderData,
 } from "react-router";
 import { GitHubStars } from "~/components/github-stars";
@@ -34,9 +35,11 @@ export function WizardHeader({
 }: WizardHeaderProps) {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { harnessId: urlHarnessId } = useParams<{ harnessId?: string }>();
 	const homeData = useRouteLoaderData<typeof homeLoader>("home");
 	const isHomepage = location.pathname === "/";
-	const harnessId = useWizardStore(selectHarnessId);
+	const storeHarnessId = useWizardStore(selectHarnessId);
+	const harnessId = urlHarnessId || storeHarnessId;
 	const providers = useWizardStore(selectProviders);
 	const slotValues = useWizardStore(selectAllSlotValues);
 	const markStepAttempted = useWizardStore((s) => s.markStepAttempted);

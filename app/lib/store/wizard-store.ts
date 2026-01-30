@@ -20,6 +20,7 @@ interface FocusBannerRequest {
 interface WizardState {
 	// Selections
 	harnessId?: string;
+	lastHarnessId?: string; // Track last harness for change detection
 	providers: string[]; // insertion order maintained
 	slotValues: Record<string, unknown>; // slotId → value directly
 
@@ -81,6 +82,9 @@ interface WizardActions {
 	requestBannerFocus: (targetStepId: StepId) => void;
 	consumeFocusRequest: (requestId: number) => void;
 	clearAttempted: () => void;
+
+	// Reset for harness change
+	resetForHarness: (harnessId: string) => void;
 
 	// Reset
 	reset: () => void;
@@ -307,9 +311,32 @@ export const useWizardStore = create<WizardState & WizardActions>(
 
 		clearAttempted: () => set({ attemptedByStepId: {} }),
 
+		resetForHarness: (harnessId: string) => {
+			// Guard: same harness, no reset needed (Early Exit)
+			if (harnessId === get().lastHarnessId) return;
+
+			// Harness changed - reset providers, slots, and validation state
+			set({
+				harnessId,
+				lastHarnessId: harnessId,
+				providers: [],
+				slotValues: {},
+				returnToStep: undefined,
+				banner: undefined,
+				attemptedByStepId: {},
+				focusBannerRequest: null,
+				lastHandledFocusBannerRequestId: 0,
+				focusBannerRequestCounter: 0,
+			});
+
+			// Initialize slots from new harness config
+			get().initializeSlotsFromHarness();
+		},
+
 		reset: () => {
 			set({
 				harnessId: undefined,
+				lastHarnessId: undefined,
 				providers: [],
 				slotValues: {},
 				returnToStep: undefined,

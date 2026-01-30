@@ -11,14 +11,16 @@ export default [
 		// Step 1: Harness selection
 		index("routes/home.tsx", { id: "home" }),
 
-		// Deep link handler
+		// Legacy deep link handler
 		route("h/:harnessId", "routes/harness.tsx"),
 
-		// Flow steps
-		route("flow/providers", "routes/flow/providers.tsx"),
-		route("flow/page/:pageId", "routes/flow/page.$pageId.tsx"),
-		route("flow/slot/:slotId", "routes/flow/slot.$slotId.tsx"),
-		route("flow/review", "routes/flow/review.tsx"),
+		// Flow steps with harnessId in path
+		route("flow/:harnessId", "routes/flow/layout.tsx", { id: "flow-layout" }, [
+			route("providers", "routes/flow/providers.tsx"),
+			route("page/:pageId", "routes/flow/page.$pageId.tsx"),
+			route("slot/:slotId", "routes/flow/slot.$slotId.tsx"),
+			route("review", "routes/flow/review.tsx"),
+		]),
 	]),
 
 	// API routes (resource routes, no UI)

@@ -1,14 +1,8 @@
 import { getHarness } from "./harness-registry";
+import { ROUTES } from "./routes";
 
 // Base steps that are always present
-const BASE_STEPS_START = [
-	{ id: "harness", path: "/", label: "Harness" },
-	{ id: "providers", path: "/flow/providers", label: "Providers" },
-];
-
-const BASE_STEPS_END = [
-	{ id: "review", path: "/flow/review", label: "Review" },
-];
+const BASE_STEPS_START = [{ id: "harness", path: "/", label: "Harness" }];
 
 export interface WizardStep {
 	id: string;
@@ -23,27 +17,38 @@ export interface WizardStep {
  */
 export function getWizardSteps(harnessId: string | undefined): WizardStep[] {
 	if (!harnessId) {
-		return [...BASE_STEPS_START, ...BASE_STEPS_END];
+		return BASE_STEPS_START;
 	}
 
 	const harness = getHarness(harnessId);
 	if (!harness) {
-		return [...BASE_STEPS_START, ...BASE_STEPS_END];
+		return BASE_STEPS_START;
 	}
 
 	const steps: WizardStep[] = [...BASE_STEPS_START];
+
+	// Add providers step
+	steps.push({
+		id: "providers",
+		path: ROUTES.flow.providers(harnessId),
+		label: "Providers",
+	});
 
 	// Add flow pages from harness configuration
 	for (const page of harness.flow) {
 		steps.push({
 			id: `page-${page.id}`,
-			path: `/flow/page/${page.id}`,
+			path: ROUTES.flow.page(harnessId, page.id),
 			label: page.label,
 		});
 	}
 
 	// Add review step
-	steps.push(...BASE_STEPS_END);
+	steps.push({
+		id: "review",
+		path: ROUTES.flow.review(harnessId),
+		label: "Review",
+	});
 
 	return steps;
 }
@@ -85,16 +90,24 @@ export function getStepFromPath(
 	steps: WizardStep[],
 	path: string,
 ): WizardStep | undefined {
-	// Handle flow page paths: /flow/page/configure → page-configure
-	if (path.startsWith("/flow/page/")) {
-		const pageId = path.replace("/flow/page/", "");
-		return steps.find((s) => s.id === `page-${pageId}`);
+	// Extract harnessId from path patterns like /flow/:harnessId/...
+	const flowMatch = path.match(/^\/flow\/([^/]+)\/(.*)/);
+	if (flowMatch) {
+		const [, , restPath] = flowMatch;
+		// Handle flow page paths: /flow/:harnessId/page/:pageId → page-:pageId
+		if (restPath.startsWith("page/")) {
+			const pageId = restPath.replace("page/", "");
+			return steps.find((s) => s.id === `page-${pageId}`);
+		}
+		// Handle slot paths: /flow/:harnessId/slot/:slotId → slot-:slotId
+		if (restPath.startsWith("slot/")) {
+			const slotId = restPath.replace("slot/", "");
+			return steps.find((s) => s.slotId === slotId);
+		}
+		// Handle providers or review: /flow/:harnessId/providers or /flow/:harnessId/review
+		return steps.find((s) => s.id === restPath);
 	}
-	// Handle slot paths (legacy): /flow/slot/visual-engineering → slot-visual-engineering
-	if (path.startsWith("/flow/slot/")) {
-		const slotId = path.replace("/flow/slot/", "");
-		return steps.find((s) => s.slotId === slotId);
-	}
+	// Fallback: exact path match
 	return steps.find((s) => s.path === path);
 }
 

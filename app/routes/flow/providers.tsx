@@ -1,19 +1,19 @@
 import { useRef } from "react";
+import { useRouteLoaderData } from "react-router";
 import { ProviderList } from "~/components/provider-list";
-import { useWizardGuard } from "~/lib/hooks";
 import {
-	selectHarnessId,
 	selectHasProviders,
 	selectReturnToStep,
 	useWizardStore,
 } from "~/lib/store/wizard-store";
 import { getWizardSteps } from "~/lib/wizard-config";
 import { toStepId } from "~/lib/wizard-step-id";
+import type { loader as flowLayoutLoader } from "./layout";
 
 export default function ProvidersStep() {
-	const { allowed } = useWizardGuard({ harness: true });
+	const layoutData = useRouteLoaderData<typeof flowLayoutLoader>("flow-layout");
 	const returnToStep = useWizardStore(selectReturnToStep);
-	const harnessId = useWizardStore(selectHarnessId);
+	const harnessId = layoutData?.harnessId;
 	const hasProviders = useWizardStore(selectHasProviders);
 
 	const bannerRef = useRef<HTMLDivElement>(null);
@@ -28,8 +28,6 @@ export default function ProvidersStep() {
 	const isAttempted = stepId ? !!attemptedByStepId[stepId] : false;
 
 	const showErrorBanner = isAttempted && !hasProviders;
-
-	if (!allowed) return null;
 
 	return (
 		<div className="flex flex-col gap-6 py-6">

@@ -1,13 +1,12 @@
 import { useRef } from "react";
-import { useParams } from "react-router";
+import { useLoaderData, useRouteLoaderData } from "react-router";
 import { SlotControl } from "~/components/slot-control";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { FieldGroup } from "~/components/ui/field";
-import { getHarness } from "~/lib/harness-registry";
-import { useWizardGuard } from "~/lib/hooks/use-wizard-guard";
+import { PrerequisiteGuard } from "~/components/wizard/prerequisite-guard";
+import { requireHarness, requirePage } from "~/lib/guards";
 import {
 	selectAllSlotValues,
-	selectHarnessId,
 	selectProviders,
 	useWizardStore,
 } from "~/lib/store/wizard-store";
@@ -17,15 +16,28 @@ import {
 	validateStep,
 	type WizardValidationContext,
 } from "~/lib/wizard-validation";
+import type { Route } from "./+types/page.$pageId";
+import type { loader as flowLayoutLoader } from "./layout";
+
+export async function loader({ params }: Route.LoaderArgs) {
+	// Parent layout already validated harnessId, but we need harness to validate pageId
+	// We can't access parent loader data in child loader, so we re-validate
+	const harness = requireHarness(params.harnessId);
+	const page = requirePage(harness, params.pageId, harness.id);
+	// requirePage throws redirect if pageId is invalid, so it's safe here
+	const pageId = params.pageId as string;
+	return { pageId, page };
+}
 
 export default function FlowPage() {
-	useWizardGuard({ harness: true, providers: true });
-	const { pageId } = useParams<{ pageId: string }>();
+	const loaderData = useLoaderData<typeof loader>();
+	const layoutData = useRouteLoaderData<typeof flowLayoutLoader>("flow-layout");
+	const { pageId } = loaderData;
 
-	const harnessId = useWizardStore(selectHarnessId);
+	const harnessId = layoutData?.harnessId;
+	const harness = layoutData?.harness;
 	const providers = useWizardStore(selectProviders);
 	const slotValues = useWizardStore(selectAllSlotValues);
-	const harness = harnessId ? getHarness(harnessId) : null;
 
 	const bannerRef = useRef<HTMLDivElement>(null);
 
@@ -38,12 +50,19 @@ export default function FlowPage() {
 	const attemptedByStepId = useWizardStore((state) => state.attemptedByStepId);
 	const isAttempted = stepId ? !!attemptedByStepId[stepId] : false;
 
-	// Guard clause: invalid harness or pageId (Early Exit)
-	if (!harness || !pageId) {
+	// Guard clause: invalid harness (Early Exit)
+	if (!harness) {
 		return (
 			<div className="flex flex-col gap-6 py-6">
 				<p className="text-muted-foreground">Invalid page configuration.</p>
 			</div>
+		);
+	}
+
+	// Guard clause: no providers selected (Early Exit)
+	if (!harnessId || providers.length === 0) {
+		return (
+			<PrerequisiteGuard requirement="providers" harnessId={harnessId ?? ""} />
 		);
 	}
 

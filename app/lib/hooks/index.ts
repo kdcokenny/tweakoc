@@ -1,1 +1,1 @@
-export { useWizardGuard } from "./use-wizard-guard";
+// Barrel export for hooks

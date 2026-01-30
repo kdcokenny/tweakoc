@@ -24,15 +24,13 @@ export function meta() {
 
 export default function HarnessSelection(_props: Route.ComponentProps) {
 	const navigate = useNavigate();
-	const setHarness = useWizardStore((s) => s.setHarness);
 	const currentHarnessId = useWizardStore((s) => s.harnessId);
 
 	// Get all harnesses from registry
 	const harnesses = getAllHarnesses();
 
 	const handleSelectHarness = (harnessId: string) => {
-		setHarness(harnessId);
-		navigate(ROUTES.flow.providers);
+		navigate(ROUTES.flow.providers(harnessId));
 	};
 
 	return (

@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useRouteLoaderData } from "react-router";
 import { AdditionalSetupRequired } from "~/components/additional-setup-required";
 import { CreateProfileModal } from "~/components/create-profile-modal";
 import { Badge } from "~/components/ui/badge";
 import { Card } from "~/components/ui/card";
+import { PrerequisiteGuard } from "~/components/wizard/prerequisite-guard";
 
 import { createProfile } from "~/lib/api/client";
 import { getSubmissionWithDefaults } from "~/lib/api/ref-resolver";
 import type { GeneratedFile } from "~/lib/api/types";
-import { getHarness } from "~/lib/harness-registry";
 import type { SlotDefinition } from "~/lib/harness-schema";
-import { useWizardGuard } from "~/lib/hooks";
 import {
 	selectAllSlotValues,
-	selectHarnessId,
+	selectProviders,
 	useWizardStore,
 } from "~/lib/store/wizard-store";
+import type { loader as flowLayoutLoader } from "./layout";
 
 function SlotValueDisplay({
 	slotDef,
@@ -65,20 +65,15 @@ function SlotValueDisplay({
 }
 
 export default function ReviewStep() {
-	const { allowed } = useWizardGuard({
-		harness: true,
-		providers: true,
-		allSlotsComplete: true,
-	});
+	const layoutData = useRouteLoaderData<typeof flowLayoutLoader>("flow-layout");
 
-	const harnessId = useWizardStore(selectHarnessId);
+	const harnessId = layoutData?.harnessId;
+	const harness = layoutData?.harness;
 	const slotValues = useWizardStore(selectAllSlotValues);
+	const providers = useWizardStore(selectProviders);
 	const providersById = useWizardStore((s) => s.catalog.providersById);
 	const setReviewStepHandler = useWizardStore((s) => s.setReviewStepHandler);
 	const setReviewStepCreating = useWizardStore((s) => s.setReviewStepCreating);
-
-	// Get harness early so we can use it in handleCreateProfile
-	const harness = harnessId ? getHarness(harnessId) : null;
 
 	// Get display values with defaults
 	const displayValues = harness
@@ -139,7 +134,11 @@ export default function ReviewStep() {
 		return () => setReviewStepHandler(undefined);
 	}, [setReviewStepHandler, handleCreateProfile]);
 
-	if (!allowed) return null;
+	// Guard clause: no harness or no providers selected (Early Exit)
+	if (!harnessId || !harness) return null;
+	if (providers.length === 0) {
+		return <PrerequisiteGuard requirement="providers" harnessId={harnessId} />;
+	}
 
 	return (
 		<div className="flex flex-col gap-6 py-6">

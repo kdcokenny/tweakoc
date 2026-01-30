@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { Badge } from "~/components/ui/badge";
 import { Field, FieldLabel } from "~/components/ui/field";
 import {
@@ -27,6 +27,7 @@ interface ModelSlotProps {
 }
 
 export function ModelSlot({ slotId, showError }: ModelSlotProps) {
+	const { harnessId } = useParams<{ harnessId?: string }>();
 	const providers = useWizardStore(selectProviders);
 	const defaultProvider = useWizardStore(selectDefaultProvider);
 	const slotValue = useWizardStore((s) => s.slotValues[slotId]);
@@ -182,13 +183,15 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 
 			{/* Edit providers link */}
 			<div className="flex items-center justify-between">
-				<Link
-					to={ROUTES.flow.providers}
-					onClick={handleEditProviders}
-					className="text-sm text-primary hover:underline"
-				>
-					Edit providers
-				</Link>
+				{harnessId && (
+					<Link
+						to={ROUTES.flow.providers(harnessId)}
+						onClick={handleEditProviders}
+						className="text-sm text-primary hover:underline"
+					>
+						Edit providers
+					</Link>
+				)}
 
 				{/* Env var hints */}
 				{providerId && (
