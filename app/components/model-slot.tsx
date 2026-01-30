@@ -1,7 +1,5 @@
-"use client";
-
 import { useEffect, useMemo } from "react";
-import { Link, useParams } from "react-router";
+import { href, Link, useParams } from "react-router";
 import { Badge } from "~/components/ui/badge";
 import { Field, FieldLabel } from "~/components/ui/field";
 import {
@@ -13,7 +11,6 @@ import {
 } from "~/components/ui/select";
 import { createAPIModelLoader } from "~/lib/api/client";
 import type { ProviderSummary } from "~/lib/api/types";
-import { ROUTES } from "~/lib/routes";
 import {
 	selectDefaultProvider,
 	selectProviders,
@@ -185,7 +182,7 @@ export function ModelSlot({ slotId, showError }: ModelSlotProps) {
 			<div className="flex items-center justify-between">
 				{harnessId && (
 					<Link
-						to={ROUTES.flow.providers(harnessId)}
+						to={href("/flow/:harnessId/providers", { harnessId })}
 						onClick={handleEditProviders}
 						className="text-sm text-primary hover:underline"
 					>

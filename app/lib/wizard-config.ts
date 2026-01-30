@@ -1,5 +1,5 @@
+import { href } from "react-router";
 import { getHarness } from "./harness-registry";
-import { ROUTES } from "./routes";
 
 // Base steps that are always present
 const BASE_STEPS_START = [{ id: "harness", path: "/", label: "Harness" }];
@@ -30,7 +30,7 @@ export function getWizardSteps(harnessId: string | undefined): WizardStep[] {
 	// Add providers step
 	steps.push({
 		id: "providers",
-		path: ROUTES.flow.providers(harnessId),
+		path: href("/flow/:harnessId/providers", { harnessId }),
 		label: "Providers",
 	});
 
@@ -38,7 +38,10 @@ export function getWizardSteps(harnessId: string | undefined): WizardStep[] {
 	for (const page of harness.flow) {
 		steps.push({
 			id: `page-${page.id}`,
-			path: ROUTES.flow.page(harnessId, page.id),
+			path: href("/flow/:harnessId/page/:pageId", {
+				harnessId,
+				pageId: page.id,
+			}),
 			label: page.label,
 		});
 	}
@@ -46,7 +49,7 @@ export function getWizardSteps(harnessId: string | undefined): WizardStep[] {
 	// Add review step
 	steps.push({
 		id: "review",
-		path: ROUTES.flow.review(harnessId),
+		path: href("/flow/:harnessId/review", { harnessId }),
 		label: "Review",
 	});
 

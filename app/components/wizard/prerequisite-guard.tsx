@@ -1,7 +1,6 @@
-import { useNavigate } from "react-router";
+import { href, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { ROUTES } from "~/lib/routes";
 
 interface PrerequisiteGuardProps {
 	requirement: "providers" | "slots";
@@ -19,14 +18,14 @@ export function PrerequisiteGuard({
 			title: "Providers Required",
 			description: "Please select at least one provider before continuing.",
 			buttonText: "Select Providers",
-			destination: ROUTES.flow.providers(harnessId),
+			destination: href("/flow/:harnessId/providers", { harnessId }),
 		},
 		slots: {
 			title: "Configuration Incomplete",
 			description:
 				"Please complete all required configuration fields before reviewing.",
 			buttonText: "Complete Configuration",
-			destination: ROUTES.flow.providers(harnessId),
+			destination: href("/flow/:harnessId/providers", { harnessId }),
 		},
 	};
 

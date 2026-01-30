@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useRouteLoaderData } from "react-router";
+import { href, Link, useRouteLoaderData } from "react-router";
 import { AdditionalSetupRequired } from "~/components/additional-setup-required";
 import { CreateProfileModal } from "~/components/create-profile-modal";
 import { Badge } from "~/components/ui/badge";
@@ -166,7 +166,10 @@ export default function ReviewStep() {
 						<div className="flex items-center justify-between">
 							<h2 className="text-lg font-semibold">{page.label}</h2>
 							<Link
-								to={`/flow/page/${page.id}`}
+								to={href("/flow/:harnessId/page/:pageId", {
+									harnessId,
+									pageId: page.id,
+								})}
 								className="text-sm text-muted-foreground hover:text-foreground"
 							>
 								Edit

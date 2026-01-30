@@ -1,11 +1,11 @@
 import {
+	href,
 	Navigate,
 	redirect,
 	useLoaderData,
 	useRouteLoaderData,
 } from "react-router";
 import { requireHarness } from "~/lib/guards";
-import { ROUTES } from "~/lib/routes";
 import type { Route } from "./+types/slot.$slotId";
 import type { loader as flowLayoutLoader } from "./layout";
 
@@ -16,7 +16,9 @@ export async function loader({ params }: Route.LoaderArgs) {
 	// Validate slotId exists in harness
 	if (!slotId || !harness.slots[slotId]) {
 		// Invalid slot, redirect to providers
-		return redirect(ROUTES.flow.providers(harness.id));
+		return redirect(
+			href("/flow/:harnessId/providers", { harnessId: harness.id }),
+		);
 	}
 
 	return { slotId };
@@ -29,7 +31,7 @@ export default function SlotRedirect() {
 	const harness = layoutData?.harness;
 
 	if (!harness) {
-		return <Navigate to="/flow" replace />;
+		return <Navigate to="/" replace />;
 	}
 
 	// Find which page/section contains this slot
@@ -39,12 +41,25 @@ export default function SlotRedirect() {
 				section.slots.includes(slotId) ||
 				section.advanced?.includes(slotId)
 			) {
-				return <Navigate to={`/flow/page/${page.id}#${section.id}`} replace />;
+				return (
+					<Navigate
+						to={`${href("/flow/:harnessId/page/:pageId", { harnessId: harness.id, pageId: page.id })}#${section.id}`}
+						replace
+					/>
+				);
 			}
 		}
 	}
 
 	// Fallback: go to first page
 	const firstPageId = harness.flow[0]?.id ?? "orchestration";
-	return <Navigate to={`/flow/page/${firstPageId}`} replace />;
+	return (
+		<Navigate
+			to={href("/flow/:harnessId/page/:pageId", {
+				harnessId: harness.id,
+				pageId: firstPageId,
+			})}
+			replace
+		/>
+	);
 }

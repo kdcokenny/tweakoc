@@ -1,6 +1,5 @@
-import { redirect } from "react-router";
+import { href, redirect } from "react-router";
 import { requireHarness } from "~/lib/guards";
-import { ROUTES } from "~/lib/routes";
 import type { Route } from "./+types/harness";
 
 /**
@@ -11,7 +10,9 @@ import type { Route } from "./+types/harness";
 export async function loader({ params }: Route.LoaderArgs) {
 	const harness = requireHarness(params.harnessId);
 	// Redirect to canonical flow route
-	return redirect(ROUTES.flow.providers(harness.id));
+	return redirect(
+		href("/flow/:harnessId/providers", { harnessId: harness.id }),
+	);
 }
 
 export default function HarnessRedirect() {

@@ -1,8 +1,7 @@
-import { useNavigate } from "react-router";
+import { href, useNavigate } from "react-router";
 import { Card } from "~/components/ui/card";
 import { getGitHubStars } from "~/lib/api/github-stars-service";
 import { getAllHarnesses } from "~/lib/harness-registry";
-import { ROUTES } from "~/lib/routes";
 import { useWizardStore } from "~/lib/store/wizard-store";
 import type { Route } from "./+types/home";
 
@@ -30,7 +29,7 @@ export default function HarnessSelection(_props: Route.ComponentProps) {
 	const harnesses = getAllHarnesses();
 
 	const handleSelectHarness = (harnessId: string) => {
-		navigate(ROUTES.flow.providers(harnessId));
+		navigate(href("/flow/:harnessId/providers", { harnessId }));
 	};
 
 	return (
