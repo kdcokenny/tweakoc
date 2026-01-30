@@ -74,6 +74,14 @@
 	--sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+html {
+	color-scheme: light;
+}
+
+html.dark {
+	color-scheme: dark;
+}
+
 @theme inline {
 	--font-sans:
 		"Geist Sans", "Inter Variable", ui-sans-serif, system-ui, sans-serif;

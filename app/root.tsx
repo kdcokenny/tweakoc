@@ -18,8 +18,17 @@ export const links: Route.LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
+				{/* Dark mode detection script - runs before hydration to prevent flash.
+				    suppressHydrationWarning on <html> is required because this script
+				    may add the .dark class before React hydrates. */}
+				<script
+					// biome-ignore lint/security/noDangerouslySetInnerHtml: Required for dark mode detection before hydration
+					dangerouslySetInnerHTML={{
+						__html: `(function(){if(typeof window==='undefined'||typeof window.matchMedia!=='function')return;var m=window.matchMedia('(prefers-color-scheme:dark)');function a(){document.documentElement.classList.toggle('dark',m.matches)}a();m.addEventListener?m.addEventListener('change',a):m.addListener&&m.addListener(a)})()`,
+					}}
+				/>
 				<meta charSet="utf-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1" />
 				<Meta />
