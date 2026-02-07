@@ -78,8 +78,7 @@ export function CreateProfileModal({
 	const finalComponentId = componentId ?? "p-placeholder";
 
 	// Commands
-	const primaryCommand = `ocx profile add ${profileName} --from tweak/${finalComponentId}`;
-	const registryCommand = `ocx registry add ${SITE_ORIGIN}/r --name tweak --global`;
+	const primaryCommand = `ocx profile add ${profileName} --source tweak/${finalComponentId} --from ${SITE_ORIGIN}/r --global`;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,12 +149,6 @@ export function CreateProfileModal({
 											2. Initialize OCX (one-time setup):
 										</p>
 										<CodeBlockCommand command="ocx init --global" />
-									</div>
-									<div>
-										<p className="text-sm text-muted-foreground mb-2">
-											3. Add the tweak registry:
-										</p>
-										<CodeBlockCommand command={registryCommand} />
 									</div>
 								</CollapsibleContent>
 							</Collapsible>
