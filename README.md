@@ -1,87 +1,65 @@
-# Welcome to React Router!
+# TweakOC
 
-A modern, production-ready template for building full-stack React applications using React Router.
+TweakOC is the fastest way to configure OpenCode harness profiles from the browser.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+Use it on **https://tweakoc.com** to generate ready-to-use config files without hand-editing complex JSON.
 
-## Features
+Each harness can generate an OpenCode config (`opencode.jsonc`) and, when needed, an OCX profile file (`ocx.jsonc`).
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+Built on the OpenCode ecosystem backbone:
+- **OCX (OpenCode Extensions):** https://github.com/kdcokenny/ocx
+- **OpenCode:** https://opencode.ai
 
-## Getting Started
+## Why TweakOC?
 
-### Installation
+TweakOC gives users and maintainers a simpler path to getting started:
+- Pick a harness
+- Fill in a guided wizard
+- Generate ready-to-use profile files
+- Share setup more easily with others
 
-Install the dependencies:
+In short: less setup friction, faster onboarding, and cleaner handoff between maintainers and users.
 
-```bash
-npm install
-```
+## Quick Start (Website)
 
-### Development
+1. Go to **https://tweakoc.com**
+2. Choose the harness that matches your setup
+3. Configure options and generate your profile files
+4. Install or share the output with OCX/OpenCode workflows
 
-Start the development server with HMR:
+## Typical Website Workflow
 
-```bash
-npm run dev
-```
+1. Choose the harness that matches your setup
+2. Pick provider/model options in the wizard.
+3. Review generated files
+4. Copy, install, or share the resulting profile setup
 
-Your application will be available at `http://localhost:5173`.
+## Maintainers: Add a Harness
 
-## Building for Production
+Want to contribute or maintain harnesses in this repo?
 
-Create a production build:
+- **Quick maintainer flow:** [docs/ADDING_HARNESS_TO_TWEAKOC.md](docs/ADDING_HARNESS_TO_TWEAKOC.md)
+- **Full deep reference:** [docs/HARNESS_GUIDE.md](docs/HARNESS_GUIDE.md)
 
-```bash
-npm run build
-```
+## Local Development (Maintainers)
 
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
+Most users should use the website. If you are contributing to the repository and preparing a PR, run:
 
 ```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
+bun install
+bun run check
+bun run harness:validate
+bun run preview
 ```
 
-The containerized application can be deployed to any platform that supports Docker, including:
+Optional during iteration:
 
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
+```bash
+bun run dev
 ```
 
-## Styling
+Run `bun run preview` before opening a PR.
 
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+## Project Positioning
 
----
-
-Built with ❤️ using React Router.
+TweakOC exists to make OCX/OpenCode harnesses more practical to adopt: easier to configure, easier to share, and easier for new users to start with confidence.
