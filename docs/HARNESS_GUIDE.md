@@ -585,9 +585,9 @@ The following arrays **must contain identical IDs** or validation will fail:
 
 ## Examples
 
-### 5.1 Minimal Example: OhMyOpenCode (omo)
+### 5.1 Reference Example: OhMyOpenCode (omo)
 
-This minimal harness demonstrates the simplest viable configuration: four model slots with no additional parameters.
+This section mirrors the current `app/config/harnesses/oh-my-opencode.json` harness. If this guide and code ever diverge, treat the harness file as the source of truth.
 
 **Complete JSON** (file: `app/config/harnesses/oh-my-opencode.json`):
 ```json
@@ -595,7 +595,7 @@ This minimal harness demonstrates the simplest viable configuration: four model 
   "schemaVersion": 1,
   "name": "OhMyOpenCode",
   "description": "Intelligent agent orchestration with category-based model selection",
-  "defaultProfileName": "ws",
+  "defaultProfileName": "omo",
 
   "slots": {
     "visual_engineering_model": {
@@ -612,6 +612,26 @@ This minimal harness demonstrates the simplest viable configuration: four model 
       "type": "model",
       "label": "Quick Model",
       "description": "Fast, simple tasks like git operations and quick fixes"
+    },
+    "deep_model": {
+      "type": "model",
+      "label": "Deep Model",
+      "description": "Long-running implementation and complex coding tasks"
+    },
+    "artistry_model": {
+      "type": "model",
+      "label": "Artistry Model",
+      "description": "Creative ideation, brainstorming, and stylistic generation"
+    },
+    "unspecified_low_model": {
+      "type": "model",
+      "label": "Unspecified Low Model",
+      "description": "Fallback model for lower-intensity uncategorized tasks"
+    },
+    "unspecified_high_model": {
+      "type": "model",
+      "label": "Unspecified High Model",
+      "description": "Fallback model for higher-intensity uncategorized tasks"
     },
     "writing_model": {
       "type": "model",
@@ -641,6 +661,26 @@ This minimal harness demonstrates the simplest viable configuration: four model 
           "slots": ["quick_model"]
         },
         {
+          "id": "deep",
+          "label": "Deep",
+          "slots": ["deep_model"]
+        },
+        {
+          "id": "artistry",
+          "label": "Artistry",
+          "slots": ["artistry_model"]
+        },
+        {
+          "id": "unspecified_low",
+          "label": "Unspecified Low",
+          "slots": ["unspecified_low_model"]
+        },
+        {
+          "id": "unspecified_high",
+          "label": "Unspecified High",
+          "slots": ["unspecified_high_model"]
+        },
+        {
           "id": "writing",
           "label": "Writing",
           "slots": ["writing_model"]
@@ -659,7 +699,47 @@ This minimal harness demonstrates the simplest viable configuration: four model 
     {
       "output": "oh-my-opencode.json",
       "template": {
-        "$schema": "https://raw.githubusercontent.com/oh-my-opencode/schema/main/oh-my-opencode.schema.json",
+        "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+        "agents": {
+          "build": { "category": "deep" },
+          "plan": { "category": "ultrabrain" },
+          "sisyphus": {
+            "category": "ultrabrain",
+            "model": { "$ref": "#/slots/ultrabrain_model" }
+          },
+          "hephaestus": { "category": "deep" },
+          "sisyphus-junior": { "category": "ultrabrain" },
+          "OpenCode-Builder": { "category": "deep" },
+          "prometheus": {
+            "category": "ultrabrain",
+            "model": { "$ref": "#/slots/ultrabrain_model" }
+          },
+          "metis": {
+            "category": "writing",
+            "model": { "$ref": "#/slots/writing_model" }
+          },
+          "momus": {
+            "category": "writing",
+            "model": { "$ref": "#/slots/writing_model" }
+          },
+          "oracle": {
+            "category": "ultrabrain",
+            "model": { "$ref": "#/slots/ultrabrain_model" }
+          },
+          "librarian": {
+            "category": "writing",
+            "model": { "$ref": "#/slots/writing_model" }
+          },
+          "explore": {
+            "category": "quick",
+            "model": { "$ref": "#/slots/quick_model" }
+          },
+          "multimodal-looker": { "category": "visual-engineering" },
+          "atlas": {
+            "category": "ultrabrain",
+            "model": { "$ref": "#/slots/ultrabrain_model" }
+          }
+        },
         "categories": {
           "visual-engineering": {
             "model": { "$ref": "#/slots/visual_engineering_model" }
@@ -667,11 +747,23 @@ This minimal harness demonstrates the simplest viable configuration: four model 
           "ultrabrain": {
             "model": { "$ref": "#/slots/ultrabrain_model" }
           },
+          "deep": {
+            "model": { "$ref": "#/slots/deep_model" }
+          },
+          "artistry": {
+            "model": { "$ref": "#/slots/artistry_model" }
+          },
           "quick": {
             "model": { "$ref": "#/slots/quick_model" }
           },
           "writing": {
             "model": { "$ref": "#/slots/writing_model" }
+          },
+          "unspecified-low": {
+            "model": { "$ref": "#/slots/unspecified_low_model" }
+          },
+          "unspecified-high": {
+            "model": { "$ref": "#/slots/unspecified_high_model" }
           }
         }
       }
@@ -698,7 +790,9 @@ This minimal harness demonstrates the simplest viable configuration: four model 
         "exclude": [
           "**/CLAUDE.md",
           "**/CONTEXT.md",
-          "**/.opencode/**"
+          "**/.opencode/**",
+          "**/opencode.jsonc",
+          "**/opencode.json"
         ]
       }
     }
@@ -711,18 +805,22 @@ This minimal harness demonstrates the simplest viable configuration: four model 
 | Slot ID | Template Output Path | Template JSON Path |
 |---------|---------------------|-------------------|
 | visual_engineering_model | oh-my-opencode.json | categories.visual-engineering.model |
-| ultrabrain_model | oh-my-opencode.json | categories.ultrabrain.model |
+| ultrabrain_model | oh-my-opencode.json | categories.ultrabrain.model; agents.sisyphus.model; agents.prometheus.model; agents.oracle.model; agents.atlas.model |
 | ultrabrain_model | opencode.jsonc | model |
-| quick_model | oh-my-opencode.json | categories.quick.model |
+| quick_model | oh-my-opencode.json | categories.quick.model; agents.explore.model |
 | quick_model | opencode.jsonc | small_model |
-| writing_model | oh-my-opencode.json | categories.writing.model |
+| deep_model | oh-my-opencode.json | categories.deep.model |
+| artistry_model | oh-my-opencode.json | categories.artistry.model |
+| unspecified_low_model | oh-my-opencode.json | categories.unspecified-low.model |
+| unspecified_high_model | oh-my-opencode.json | categories.unspecified-high.model |
+| writing_model | oh-my-opencode.json | categories.writing.model; agents.metis.model; agents.momus.model; agents.librarian.model |
 
 **Key characteristics:**
-- Only model slots (no advanced parameters)
-- Single page flow (all models on one page)
-- No advanced sections
-- Multiple outputs from same slots
-- Static values in templates (e.g., plugin array, exclude patterns)
+- Model-only harness with 8 category-specific model slots
+- Single-page flow with one section per category
+- Includes both category defaults and targeted per-agent overrides
+- Generates three outputs (`oh-my-opencode.json`, `opencode.jsonc`, `ocx.jsonc`)
+- Uses canonical plugin schema URL: `https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json`
 
 ### 5.2 Native Example: OpenCode Native
 
@@ -1406,5 +1504,4 @@ When adding a new harness to the codebase:
 2. Run validation before committing
 3. Consider adding your harness as an example if it demonstrates unique patterns
 4. Update EXPECTED_HARNESS_IDS in sync with HARNESS_IDS
-
 

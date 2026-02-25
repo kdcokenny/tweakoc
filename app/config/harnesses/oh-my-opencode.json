@@ -20,6 +20,26 @@
 			"label": "Quick Model",
 			"description": "Fast, simple tasks like git operations and quick fixes"
 		},
+		"deep_model": {
+			"type": "model",
+			"label": "Deep Model",
+			"description": "Long-running implementation and complex coding tasks"
+		},
+		"artistry_model": {
+			"type": "model",
+			"label": "Artistry Model",
+			"description": "Creative ideation, brainstorming, and stylistic generation"
+		},
+		"unspecified_low_model": {
+			"type": "model",
+			"label": "Unspecified Low Model",
+			"description": "Fallback model for lower-intensity uncategorized tasks"
+		},
+		"unspecified_high_model": {
+			"type": "model",
+			"label": "Unspecified High Model",
+			"description": "Fallback model for higher-intensity uncategorized tasks"
+		},
 		"writing_model": {
 			"type": "model",
 			"label": "Writing Model",
@@ -48,6 +68,26 @@
 					"slots": ["quick_model"]
 				},
 				{
+					"id": "deep",
+					"label": "Deep",
+					"slots": ["deep_model"]
+				},
+				{
+					"id": "artistry",
+					"label": "Artistry",
+					"slots": ["artistry_model"]
+				},
+				{
+					"id": "unspecified_low",
+					"label": "Unspecified Low",
+					"slots": ["unspecified_low_model"]
+				},
+				{
+					"id": "unspecified_high",
+					"label": "Unspecified High",
+					"slots": ["unspecified_high_model"]
+				},
+				{
 					"id": "writing",
 					"label": "Writing",
 					"slots": ["writing_model"]
@@ -66,24 +106,62 @@
 		{
 			"output": "oh-my-opencode.json",
 			"template": {
-				"$schema": "https://raw.githubusercontent.com/oh-my-opencode/schema/main/oh-my-opencode.schema.json",
+				"$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
 				"agents": {
-					"sisyphus": { "model": { "$ref": "#/slots/ultrabrain_model" } },
-					"atlas": { "model": { "$ref": "#/slots/ultrabrain_model" } },
-					"oracle": { "model": { "$ref": "#/slots/ultrabrain_model" } },
-					"prometheus": { "model": { "$ref": "#/slots/ultrabrain_model" } },
-					"librarian": { "model": { "$ref": "#/slots/writing_model" } },
-					"metis": { "model": { "$ref": "#/slots/writing_model" } },
-					"momus": { "model": { "$ref": "#/slots/writing_model" } },
-					"explore": { "model": { "$ref": "#/slots/quick_model" } }
+					"build": { "category": "deep" },
+					"plan": { "category": "ultrabrain" },
+					"sisyphus": {
+						"category": "ultrabrain",
+						"model": { "$ref": "#/slots/ultrabrain_model" }
+					},
+					"hephaestus": { "category": "deep" },
+					"sisyphus-junior": { "category": "ultrabrain" },
+					"OpenCode-Builder": { "category": "deep" },
+					"prometheus": {
+						"category": "ultrabrain",
+						"model": { "$ref": "#/slots/ultrabrain_model" }
+					},
+					"metis": {
+						"category": "writing",
+						"model": { "$ref": "#/slots/writing_model" }
+					},
+					"momus": {
+						"category": "writing",
+						"model": { "$ref": "#/slots/writing_model" }
+					},
+					"oracle": {
+						"category": "ultrabrain",
+						"model": { "$ref": "#/slots/ultrabrain_model" }
+					},
+					"librarian": {
+						"category": "writing",
+						"model": { "$ref": "#/slots/writing_model" }
+					},
+					"explore": {
+						"category": "quick",
+						"model": { "$ref": "#/slots/quick_model" }
+					},
+					"multimodal-looker": { "category": "visual-engineering" },
+					"atlas": {
+						"category": "ultrabrain",
+						"model": { "$ref": "#/slots/ultrabrain_model" }
+					}
 				},
 				"categories": {
 					"visual-engineering": {
 						"model": { "$ref": "#/slots/visual_engineering_model" }
 					},
 					"ultrabrain": { "model": { "$ref": "#/slots/ultrabrain_model" } },
+					"deep": { "model": { "$ref": "#/slots/deep_model" } },
+					"artistry": { "model": { "$ref": "#/slots/artistry_model" } },
 					"quick": { "model": { "$ref": "#/slots/quick_model" } },
-					"writing": { "model": { "$ref": "#/slots/writing_model" } }
+					"writing": { "model": { "$ref": "#/slots/writing_model" } },
+					"unspecified-low": {
+						"model": { "$ref": "#/slots/unspecified_low_model" }
+					},
+					"unspecified-high": {
+						"model": { "$ref": "#/slots/unspecified_high_model" }
+					}
 				}
 			}
 		},
