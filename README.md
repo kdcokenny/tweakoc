@@ -24,15 +24,8 @@ In short: less setup friction, faster onboarding, and cleaner handoff between ma
 
 1. Go to **https://tweakoc.com**
 2. Choose the harness that matches your setup
-3. Configure options and generate your profile files
-4. Install or share the output with OCX/OpenCode workflows
-
-## Typical Website Workflow
-
-1. Choose the harness that matches your setup
-2. Pick provider/model options in the wizard.
-3. Review generated files
-4. Copy, install, or share the resulting profile setup
+3. Step through the wizard to pick provider/model options
+4. Review generated files, then copy, install, or share for OCX/OpenCode workflows
 
 ## Maintainers: Add a Harness
 
