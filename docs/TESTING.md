@@ -101,9 +101,9 @@ Run the test script:
 ```
 
 This will:
-1. Add the local registry to OCX
-2. Create a test profile via API
-3. Install the profile using OCX CLI
+1. Create a test profile via API
+2. Verify the packument from the local registry URL
+3. Install the profile directly using OCX CLI (`ocx profile add <name> --source tweak/<component-id> --from http://localhost:8787/r --global`)
 4. Verify the installed files
 
 ## UI Testing (Manual)

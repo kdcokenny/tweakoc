@@ -19,15 +19,9 @@ fi
 
 echo -e "${GREEN}✓ Server is running${NC}"
 
-# Step 1: Add local registry
+# Step 1: Create profile via API
 echo ""
-echo -e "${YELLOW}Step 1: Adding local registry...${NC}"
-ocx registry add http://localhost:8787/r --name tweak-local --global --force
-echo -e "${GREEN}✓ Registry added${NC}"
-
-# Step 2: Create profile via API
-echo ""
-echo -e "${YELLOW}Step 2: Creating profile via API...${NC}"
+echo -e "${YELLOW}Step 1: Creating profile via API...${NC}"
 RESPONSE=$(curl -s -X POST http://localhost:8787/api/profiles \
   -H "Content-Type: application/json" \
   -d '{
@@ -48,9 +42,9 @@ fi
 
 echo -e "${GREEN}✓ Created profile: ${COMPONENT_ID}${NC}"
 
-# Step 3: Verify packument
+# Step 2: Verify packument
 echo ""
-echo -e "${YELLOW}Step 3: Verifying packument...${NC}"
+echo -e "${YELLOW}Step 2: Verifying packument...${NC}"
 PACKUMENT=$(curl -s "http://localhost:8787/r/components/${COMPONENT_ID}.json")
 PACKUMENT_NAME=$(echo "$PACKUMENT" | jq -r '.name')
 
@@ -62,21 +56,22 @@ fi
 
 echo -e "${GREEN}✓ Packument verified${NC}"
 
-# Step 4: Install profile using OCX
+# Step 3: Install profile using OCX
 echo ""
-echo -e "${YELLOW}Step 4: Installing profile with OCX...${NC}"
+echo -e "${YELLOW}Step 3: Installing profile with OCX...${NC}"
 PROFILE_NAME="test-$(date +%s)"
+REGISTRY_URL="http://localhost:8787/r"
 
 # Remove existing test profile if exists
 rm -rf ~/.config/opencode/profiles/$PROFILE_NAME 2>/dev/null || true
 
-ocx profile add $PROFILE_NAME --from tweak-local/$COMPONENT_ID
+ocx profile add "$PROFILE_NAME" --source tweak/$COMPONENT_ID --from "$REGISTRY_URL" --global
 
 echo -e "${GREEN}✓ Profile installed${NC}"
 
-# Step 5: Verify installed files
+# Step 4: Verify installed files
 echo ""
-echo -e "${YELLOW}Step 5: Verifying installed files...${NC}"
+echo -e "${YELLOW}Step 4: Verifying installed files...${NC}"
 PROFILE_DIR=~/.config/opencode/profiles/$PROFILE_NAME
 
 if [ ! -d "$PROFILE_DIR" ]; then
