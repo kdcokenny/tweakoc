@@ -15,7 +15,13 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 	}
 
 	const kv = context.cloudflare.env.PROFILES_KV;
-	const profile = await getProfile(kv, componentId);
+	let profile: Awaited<ReturnType<typeof getProfile>>;
+	try {
+		profile = await getProfile(kv, componentId);
+	} catch (error) {
+		console.error("Failed to load profile from storage:", error);
+		return createErrorResponse("INTERNAL_ERROR", "Failed to load profile", 500);
+	}
 
 	if (!profile) {
 		return createErrorResponse(

@@ -4,6 +4,7 @@ import {
 	getSubmissionWithDefaults,
 	resolveRefs,
 } from "./api/ref-resolver.js";
+import { DependencyListSchema } from "./dependency-utils.js";
 
 // ============================================================================
 // Harness ID Derivation
@@ -142,6 +143,8 @@ export const HarnessTemplateSchema = z.object({
 
 export type HarnessTemplate = z.infer<typeof HarnessTemplateSchema>;
 
+const HarnessDependenciesSchema = DependencyListSchema.default([]);
+
 // ============================================================================
 // Full Harness Config
 // ============================================================================
@@ -155,6 +158,7 @@ const HarnessConfigSchemaBase = z
 			message:
 				"Must be lowercase, start with letter, max 32 chars, allowed: a-z 0-9 . _ -",
 		}),
+		dependencies: HarnessDependenciesSchema,
 
 		slots: z.record(z.string(), SlotSchema),
 		flow: z.array(FlowPageSchema).min(1),

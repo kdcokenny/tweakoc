@@ -57,6 +57,7 @@ export interface StoredProfile {
 	componentId: string;
 	request: CreateProfileRequest;
 	files: GeneratedFile[];
+	dependencies: string[];
 	createdAt: string;
 	lastAccessedAt: string;
 }

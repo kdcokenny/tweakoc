@@ -199,7 +199,13 @@ export async function action({ request, context }: Route.ActionArgs) {
 		let saved = false;
 		for (let attempt = 0; attempt < 3; attempt++) {
 			componentId = generateComponentId();
-			saved = await saveProfile(kv, componentId, validated, generatedFiles);
+			saved = await saveProfile(
+				kv,
+				componentId,
+				validated,
+				generatedFiles,
+				harness.dependencies,
+			);
 			if (saved) break;
 		}
 

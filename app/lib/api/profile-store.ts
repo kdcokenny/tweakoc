@@ -1,4 +1,10 @@
 import type { ExecutionContext, KVNamespace } from "@cloudflare/workers-types";
+import { z } from "zod";
+import {
+	DependencyListSchema,
+	formatZodIssues,
+	parseDependencies,
+} from "~/lib/dependency-utils.js";
 import type {
 	CreateProfileRequest,
 	GeneratedFile,
@@ -9,6 +15,70 @@ const PROFILE_PREFIX = "profile:";
 const PROFILE_TTL_SECONDS = 90 * 24 * 60 * 60; // 90 days
 const RATE_LIMIT_PREFIX = "ratelimit:";
 const RATE_LIMIT_MAX = 60; // 60 requests per hour per IP
+
+const StoredProfileSchema = z
+	.object({
+		componentId: z.string().min(1),
+		request: z
+			.object({
+				harnessId: z.string().min(1),
+				slotValues: z.record(z.string(), z.unknown()),
+			})
+			.strict(),
+		files: z
+			.array(
+				z
+					.object({
+						path: z.string().min(1),
+						content: z.string(),
+					})
+					.strict(),
+			)
+			.min(1),
+		dependencies: DependencyListSchema,
+		createdAt: z.string().datetime(),
+		lastAccessedAt: z.string().datetime(),
+	})
+	.strict();
+
+export class StoredProfileParseError extends Error {
+	readonly componentId: string;
+
+	constructor(componentId: string, detail: string) {
+		super(`Stored profile ${componentId} ${detail}`);
+		this.name = "StoredProfileParseError";
+		this.componentId = componentId;
+	}
+}
+
+function parseStoredProfile(componentId: string, raw: string): StoredProfile {
+	let parsedRaw: unknown;
+	try {
+		parsedRaw = JSON.parse(raw);
+	} catch (error) {
+		throw new StoredProfileParseError(
+			componentId,
+			`contains invalid JSON: ${String(error instanceof Error ? error.message : error)}`,
+		);
+	}
+
+	const parsed = StoredProfileSchema.safeParse(parsedRaw);
+	if (!parsed.success) {
+		throw new StoredProfileParseError(
+			componentId,
+			`is malformed: ${formatZodIssues(parsed.error.issues)}`,
+		);
+	}
+
+	if (parsed.data.componentId !== componentId) {
+		throw new StoredProfileParseError(
+			componentId,
+			`has mismatched componentId: ${parsed.data.componentId}`,
+		);
+	}
+
+	return parsed.data;
+}
 
 function getProfileKey(componentId: string): string {
 	return `${PROFILE_PREFIX}${componentId}`;
@@ -28,6 +98,7 @@ export async function saveProfile(
 	componentId: string,
 	request: CreateProfileRequest,
 	files: GeneratedFile[],
+	dependencies: string[],
 ): Promise<boolean> {
 	const key = getProfileKey(componentId);
 
@@ -37,12 +108,15 @@ export async function saveProfile(
 		return false; // ID collision - caller should retry with new ID
 	}
 
+	const now = new Date().toISOString();
+
 	const profile: StoredProfile = {
 		componentId,
 		request,
 		files,
-		createdAt: new Date().toISOString(),
-		lastAccessedAt: new Date().toISOString(),
+		dependencies: parseDependencies(dependencies),
+		createdAt: now,
+		lastAccessedAt: now,
 	};
 
 	await kv.put(key, JSON.stringify(profile), {
@@ -61,11 +135,13 @@ export async function getProfile(
 	ctx?: ExecutionContext,
 ): Promise<StoredProfile | null> {
 	const key = getProfileKey(componentId);
-	const data = (await kv.get(key, "json")) as StoredProfile | null;
+	const raw = await kv.get(key);
 
-	if (!data) {
+	if (raw === null) {
 		return null;
 	}
+
+	const data = parseStoredProfile(componentId, raw);
 
 	// Extend TTL by updating lastAccessedAt (non-blocking)
 	const updated: StoredProfile = {

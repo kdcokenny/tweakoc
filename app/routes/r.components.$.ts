@@ -1,5 +1,6 @@
 import { isValidComponentId } from "~/lib/api/id-generator";
 import { getProfile } from "~/lib/api/profile-store";
+import { createErrorResponse } from "~/lib/api/types";
 import { SITE_ORIGIN } from "~/lib/config";
 import type { Route } from "./+types/r.components.$";
 
@@ -7,6 +8,19 @@ import type { Route } from "./+types/r.components.$";
 const IMMUTABLE_HEADERS = {
 	"Cache-Control": "public, max-age=31536000, immutable",
 };
+
+async function loadProfile(
+	context: Route.LoaderArgs["context"],
+	componentId: string,
+): Promise<Awaited<ReturnType<typeof getProfile>> | Response> {
+	const kv = context.cloudflare.env.PROFILES_KV;
+	try {
+		return await getProfile(kv, componentId);
+	} catch (error) {
+		console.error("Failed to load profile from storage:", error);
+		return createErrorResponse("INTERNAL_ERROR", "Failed to load profile", 500);
+	}
+}
 
 export async function loader({ params, context }: Route.LoaderArgs) {
 	const path = params["*"];
@@ -34,8 +48,11 @@ async function handlePackument(
 		return new Response("Not Found", { status: 404 });
 	}
 
-	const kv = context.cloudflare.env.PROFILES_KV;
-	const profile = await getProfile(kv, componentId);
+	const profileResult = await loadProfile(context, componentId);
+	if (profileResult instanceof Response) {
+		return profileResult;
+	}
+	const profile = profileResult;
 
 	if (!profile) {
 		return new Response("Not Found", { status: 404 });
@@ -57,7 +74,7 @@ async function handlePackument(
 				type: "ocx:profile",
 				description: `Generated profile from ${new URL(SITE_ORIGIN).hostname}`,
 				files,
-				dependencies: [],
+				dependencies: profile.dependencies,
 			},
 		},
 	};
@@ -84,8 +101,11 @@ async function handleFile(path: string, context: Route.LoaderArgs["context"]) {
 		return new Response("Not Found", { status: 404 });
 	}
 
-	const kv = context.cloudflare.env.PROFILES_KV;
-	const profile = await getProfile(kv, componentId);
+	const profileResult = await loadProfile(context, componentId);
+	if (profileResult instanceof Response) {
+		return profileResult;
+	}
+	const profile = profileResult;
 
 	if (!profile) {
 		return new Response("Not Found", { status: 404 });

@@ -106,6 +106,7 @@ The root configuration object for a harness:
   defaultProfileName: string,  // Required. Default profile name for OCX installation.
                                // Must be lowercase, start with letter, max 32 chars.
                                // Allowed: a-z 0-9 . _ -
+  dependencies?: string[],     // Optional dependency package names (default: [])
   slots: Record<string, SlotDefinition>,
   flow: FlowPage[],
   outputs: { path: string, label: string }[],
@@ -113,13 +114,25 @@ The root configuration object for a harness:
 }
 ```
 
-**Note:** Harness ID is automatically derived from the filename. For example, `my-harness.json` will have the ID `my-harness`. The filename (without `.json` extension) must use lowercase kebab-case (lowercase letters, numbers, and hyphens only, matching `/^[a-z0-9-]+$/`).
+`dependencies` is optional in JSON and defaults to `[]` when omitted. Each entry must be a non-empty string after trimming whitespace. Dependencies are normalized during parsing (trimmed, deduplicated, and sorted) so stored harness configs are deterministic.
+
+**Example:**
+
+```json
+{
+  "name": "KDCO Workspace",
+  "defaultProfileName": "ws",
+  "dependencies": ["kdco/workspace"]
+}
+```
+
+**Note:** Harness ID is automatically derived from the filename. For example, `my-harness.json` will have the ID `my-harness`. Harness IDs must match `/^[a-z][a-z0-9-]*$/`, and filenames must match `/^[a-z][a-z0-9-]*\.json$/`.
 
 #### Schema Refinements
 
 - **Unique output paths**: All `outputs[].path` values must be unique
 - **Valid template outputs**: Each `templates[].output` must match an existing `outputs[].path`
-- **Valid filename format**: The JSON filename (without `.json`) must match `/^[a-z0-9-]+$/` (lowercase letters, numbers, hyphens only). This filename becomes the harness ID.
+- **Valid filename format**: The JSON filename must match `/^[a-z][a-z0-9-]*\.json$/` (lowercase letters, numbers, hyphens only, and must start with a letter). The filename without `.json` becomes the harness ID and must match `/^[a-z][a-z0-9-]*$/`.
 - **Valid profile name format**: `defaultProfileName` must:
   - Be lowercase only (a-z)
   - Start with a letter (not digit or special char)
@@ -406,9 +419,11 @@ Follow these steps to create a new harness from scratch.
 1. Navigate to `app/config/harnesses/`
 2. Create a new file: `<your-harness-id>.json`
 3. Choose an ID that:
-   - Uses lowercase letters, numbers, and hyphens only
+   - Starts with a lowercase letter
+   - Uses only lowercase letters, numbers, and hyphens
    - Describes the harness purpose (e.g., `kdco-workspace`, `opencode-native`)
-   - Matches the pattern: `/^[a-z0-9-]+$/`
+   - Matches ID regex: `/^[a-z][a-z0-9-]*$/`
+   - Uses filename regex: `/^[a-z][a-z0-9-]*\.json$/`
 
 **Example:**
 ```bash
@@ -998,9 +1013,10 @@ These errors come from `scripts/validate-harnesses.ts`:
 **Cause:** Harness structure doesn't match HarnessConfigSchema (from Zod validation)
 
 **Solution:** Review error message for specific field issues. Common problems:
-- Missing required fields (`id`, `name`, `description`, `slots`, `flow`, `outputs`, `templates`)
+- Missing required fields (`name`, `description`, `defaultProfileName`, `slots`, `flow`, `outputs`, `templates`)
 - Wrong field types (e.g., `slots` as array instead of object)
 - Invalid slot definitions (e.g., enum default not in options)
+- Including `id` in harness JSON (not allowed). `id` is derived from filename and must not be present in the JSON body.
 
 ---
 
@@ -1504,4 +1520,3 @@ When adding a new harness to the codebase:
 2. Run validation before committing
 3. Consider adding your harness as an example if it demonstrates unique patterns
 4. Update EXPECTED_HARNESS_IDS in sync with HARNESS_IDS
-

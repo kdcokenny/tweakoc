@@ -3,6 +3,7 @@
 	"name": "KDCO Workspace",
 	"description": "Full-featured development environment with specialized agents",
 	"defaultProfileName": "ws",
+	"dependencies": ["kdco/workspace"],
 
 	"slots": {
 		"orchestrator_model": {
